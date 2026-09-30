@@ -7,20 +7,21 @@ Status: ⬜ not started · 🟡 in progress · ✅ done
 | 0   | Setup & accounts (GitHub, Vercel, Atlas, OAuth app, env)                | ✅     | `.env.local` present |
 | 1   | Foundation (scaffold, tooling, shadcn, env, money, dates, CI)           | ✅     | 2026-09-30           |
 | 2   | DB connection + Auth (Mongoose, Auth.js GitHub, allowlist, crypto)      | ✅     | 2026-09-30           |
-| 3   | App shell & design system (sidebar, bottom nav, ⌘K, theme, i18n wiring) | ⬜     |                      |
-| 4   | Expenses (quick add, list, categories)                                  | ⬜     |                      |
-| 5   | Recurring / fixed expenses                                              | ⬜     |                      |
-| 6   | Monthly budget                                                          | ⬜     |                      |
-| 7   | Salary planning                                                         | ⬜     |                      |
-| 8   | Debts & EMIs                                                            | ⬜     |                      |
-| 9   | Goals & wishlist                                                        | ⬜     |                      |
-| 10  | Bank-statement import & analysis                                        | ⬜     |                      |
-| 11  | Investments (INDstocks/INDmoney read-only, mutual funds)                | ⬜     |                      |
-| 12  | Dashboard                                                               | ⬜     |                      |
-| 13  | AI financial advisor                                                    | ⬜     |                      |
-| 14  | Personal assistant agent + Telegram                                     | ⬜     |                      |
-| 15  | Settings, Tamil (ta) translations, data export                          | ⬜     |                      |
-| 16  | Hardening: Playwright E2E, a11y/perf pass, Vercel cron & deploy         | ⬜     |                      |
+| 3   | Data layer (Mongoose models, Zod schemas, default categories, seed)    | ✅     | 2026-09-30           |
+| 4   | App shell & design system (sidebar, bottom nav, ⌘K, theme, i18n wiring) | ⬜     |                      |
+| 5   | Expenses (quick add, list, categories)                                  | ⬜     |                      |
+| 6   | Recurring / fixed expenses                                              | ⬜     |                      |
+| 7   | Monthly budget                                                          | ⬜     |                      |
+| 8   | Salary planning                                                         | ⬜     |                      |
+| 9   | Debts & EMIs                                                            | ⬜     |                      |
+| 10  | Goals & wishlist                                                        | ⬜     |                      |
+| 11  | Bank-statement import & analysis                                        | ⬜     |                      |
+| 12  | Investments (INDstocks/INDmoney read-only, mutual funds)                | ⬜     |                      |
+| 13  | Dashboard                                                               | ⬜     |                      |
+| 14  | AI financial advisor                                                    | ⬜     |                      |
+| 15  | Personal assistant agent + Telegram                                     | ⬜     |                      |
+| 16  | Settings, Tamil (ta) translations, data export                          | ⬜     |                      |
+| 17  | Hardening: Playwright E2E, a11y/perf pass, Vercel cron & deploy         | ⬜     |                      |
 
 ## Module 1 — Foundation
 
@@ -57,5 +58,28 @@ Notes:
 
 - 230 unit tests. 100% coverage enforced for `crypto.ts`, `auth/allowlist.ts`, `auth/access.ts`.
 - Smoke-tested against `pnpm build && pnpm start`: redirects, 401/404 JSON, cron bearer, headers. Atlas ping OK.
-- Not yet verified end to end: the real GitHub OAuth round-trip in a browser (needs a manual sign-in). Playwright covers it in Module 16.
-- `/` is now a protected placeholder home under `(app)`. Module 3 replaces the minimal header with the real shell.
+- Not yet verified end to end: the real GitHub OAuth round-trip in a browser (needs a manual sign-in). Playwright covers it in Module 17.
+- `/` is now a protected placeholder home under `(app)`. Module 4 replaces the minimal header with the real shell.
+
+## Module 3 — Data layer
+
+- [x] `src/lib/db/schema-helpers.ts`: `paiseField()` shared Mongoose validator for every `*Paise` field
+- [x] `src/lib/db/enums.ts`: enum tuples shared between Mongoose schemas and Zod input schemas (kept mongoose-free so feature `schema.ts` files stay client-bundleable per ADR-005)
+- [x] 16 new Mongoose models in `src/lib/db/models/`: Account, Category, Transaction, Recurring, Emi, MonthlyPlan, Income, Debt, Goal, StatementImport, MerchantRule, Connection, HoldingSnapshot, Task, AdvisorMessage, Insight — every model has `userId` (ref `User`, indexed) + `timestamps: true`
+- [x] `User` model extended: `theme`, `payday`, `salaryMinPaise`, `salaryMaxPaise`, `dailyReminderTime`, `telegramChatId` (encrypted, `select: false`), `onboardingDone`
+- [x] Zod input schemas per model, in the owning feature's `schema.ts` (expenses, recurring, budget, salary, debts, goals, statements, investments, assistant, advisor, settings)
+- [x] Read-only `queries.ts` repository helpers per feature, always scoped by `userId`, `.lean()`
+- [x] `computeDedupeHash` (`expenses/service.ts`) + unique partial `(userId, dedupeHash)` index on Transaction (not `sparse` — see ADR-017)
+- [x] `computeOutstandingPaise` (`debts/service.ts`) + Mongoose virtual on Debt (virtuals don't survive `.lean()`, so `debts/queries.ts` computes it manually)
+- [x] `DEFAULT_CATEGORIES` + `ensureDefaultCategories(userId)` in `settings/service.ts`, wired into `src/lib/auth.ts`'s `jwt` callback right after `upsertUserOnSignIn`
+- [x] `scripts/seed-demo.ts` + `pnpm seed:demo` (new `tsx` devDependency); idempotent, fake data only, scoped to one fixed demo user
+- [x] `docs/DATA_MODEL.md`: Mermaid ER diagram + prose
+- [x] ADR-011..ADR-017 in `docs/DECISIONS.md`
+
+Notes:
+
+- 244 unit tests (up from 230): new suites cover `computeDedupeHash` (expenses) and `computeOutstandingPaise` (debts), including the IST-day boundary and overpayment-clamping edge cases.
+- `tsx` resolves the `@/*` tsconfig path alias and forwards `--env-file` to Node out of the box. The real `server-only` package throws unconditionally outside Next's build, so `scripts/tsconfig.json` (used only by `tsx --tsconfig`, not by `pnpm typecheck`) aliases it to the same no-op stub Vitest uses.
+- `pnpm seed:demo` **was** run against the real Atlas cluster (`.env.local`'s `MONGODB_URI`), twice in a row to confirm idempotency (identical counts both times, no duplicate-key errors on the second run): 3 Accounts, 17 Categories, 50 Transactions, 4 Recurring, 1 Emi, 2 MonthlyPlan, 2 Income, 2 Debt, 2 Goal, 1 StatementImport, 3 MerchantRule, 1 Connection, 1 HoldingSnapshot, 3 Task, 3 AdvisorMessage, 2 Insight. Indexes spot-checked live via `Model.collection.indexes()`: Transaction has `(userId,date)`, the unique partial `(userId,dedupeHash)`, and the text index; MonthlyPlan has the unique `(userId,monthKey)`. First-login bootstrap verified separately (fresh user → exactly 17 categories, unchanged on a second call).
+- This live run caught a real bug — a plain `sparse` compound index doesn't exclude a document just because *one* field is missing (only when *all* indexed fields are missing), so `{userId, dedupeHash}` was indexing every transaction and colliding. Fixed with `ignoreUndefined: true` on the connection plus `partialFilterExpression` on every compound index over an optional field, see ADR-017.
+- Every module from the previous Module 3 onward shifted down by one (old "3 App shell" → 4, ... old "16 Hardening" → 17) to make room for this module.

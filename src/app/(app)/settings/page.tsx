@@ -14,8 +14,10 @@ export default async function Page() {
     email: user.email ?? "",
     image: user.image ?? null,
     locale: "en" as const,
+    theme: "system" as const,
     currency: "INR",
     timezone: "Asia/Kolkata",
+    onboardingDone: false,
     createdAt: null,
   };
   return <SettingsPage profile={profile} />;

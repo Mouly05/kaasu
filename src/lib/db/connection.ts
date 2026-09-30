@@ -20,6 +20,11 @@ export async function connectDb(): Promise<typeof mongoose> {
     bufferCommands: false,
     maxPoolSize: 10, // M0 allows 500 connections shared across all instances
     serverSelectionTimeoutMS: 10_000,
+    // Without this, the BSON serializer writes unset optional fields as an
+    // explicit `null` instead of omitting the key. Every sparse index in the
+    // schema (Transaction.dedupeHash and friends) relies on the field being
+    // truly absent, not null — see docs/DECISIONS.md ADR-017.
+    ignoreUndefined: true,
   });
   try {
     cache.conn = await cache.promise;

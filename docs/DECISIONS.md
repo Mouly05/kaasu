@@ -65,3 +65,52 @@ Format: context → decision → consequences. Newest at the bottom. Never edit 
 
 - **Date:** 2026-09-30 · **Status:** Accepted
 - **Decision:** Optional `MONGODB_DB` (default `kaasu`) is passed as Mongoose `dbName`, overriding any path in `MONGODB_URI`, so an Atlas URI copied without a database never writes to `test`.
+
+## ADR-011: `userId` is an ObjectId ref, not a raw string
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** `RateLimitBucket.userId` is a raw string because it's part of a composite `_id`, not a document relationship.
+- **Decision:** Every Module 3+ model uses `userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true }`, matching `User._id`'s real type — idiomatic Mongoose ref semantics, and `.populate()`-able if ever needed.
+- **Consequences:** Query helpers accept `userId: string` and Mongoose casts it. Every new `queries.ts` guards with `isValidObjectId(userId)` first, the same pattern `settings/queries.ts` already used.
+
+## ADR-012: `paiseField()` — one shared Mongoose validator for every money field
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** ~30 `*Paise` fields across 16 new models all need the same "safe integer, no floats" guarantee that Zod already enforces at the action boundary (ADR-001).
+- **Decision:** `src/lib/db/schema-helpers.ts` exports `paiseField(options)`, composing `required`/`default`/`min`/`allowNegative`, used on every money field.
+- **Consequences:** One place to change the invariant later; defense-in-depth if a write action, script, or migration ever bypasses Zod.
+
+## ADR-013: `Transaction.dedupeHash` is a sparse unique index, computed only for automated sources
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Bank-statement re-imports and retried webhook/AI calls can create duplicate rows; manual, deliberate same-day/same-amount entries (two coffees) are legitimate and must never collide, and a `recurring` auto-log entry is deliberately repeated every cycle by design.
+- **Decision:** `computeDedupeHash` (`src/features/expenses/service.ts`) hashes an IST-calendar-day-normalised date, the amount, direction, and a whitespace/case-normalised merchant (sha256). It is computed only for `source: "statement" | "telegram" | "ai"` — never `manual` or `recurring`. The Mongo index is `{userId, dedupeHash}` **unique and partial** (not `sparse` — see ADR-017), so documents without a hash never participate in the uniqueness constraint.
+- **Consequences:** A duplicate statement row fails to insert (surfaced as a "duplicate" by the statements-import feature in a later module); manual entries are always free to repeat.
+
+## ADR-014: `MerchantRule.pattern` is a safe literal-with-wildcard, never a live user-controlled `RegExp`
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Compiling arbitrary user input directly into `new RegExp(input)` is a ReDoS and injection risk.
+- **Decision:** `pattern` is stored as a plain string (`maxlength: 100`). Matching (implemented in the statements-import module) escapes every regex metacharacter except `*` (treated as a wildcard → `.*`), so no nested-quantifier syntax is ever reachable and catastrophic backtracking is structurally impossible.
+- **Consequences:** Rules are less expressive than full regex (no anchors, character classes, alternation) — an acceptable trade for guaranteed-safe matching on user-supplied patterns.
+
+## ADR-015: `pnpm seed:demo` runs via `tsx` + Node's native `--env-file`
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** No standalone TS script runner existed yet; the project prefers the platform over extra dependencies where it suffices (CLAUDE.md §3).
+- **Decision:** Added `tsx` as a devDependency to run `scripts/seed-demo.ts` directly. `.env.local` loads via Node 22's built-in `--env-file` flag rather than `dotenv` — verified directly that `tsx --env-file=<path>` forwards the flag to the underlying Node process, and that `tsx` resolves the project's `@/*` tsconfig path alias without extra config. The real `server-only` package throws unconditionally outside Next's webpack build (it has no special-case for plain Node), so `scripts/tsconfig.json` (used only via `tsx --tsconfig`, never by `pnpm typecheck`) adds a `paths` alias remapping `server-only` to the same no-op stub Vitest already uses (`src/test/server-only.ts`) — verified directly that `tsx --tsconfig` honours a `paths` override for a real npm package specifier, not just local aliases.
+- **Consequences:** One new devDependency (`tsx`), zero others. `scripts/seed-demo.ts` uses the same `@/lib/...` imports, including `server-only`-guarded modules, as the rest of the app.
+
+## ADR-016: Minor field/enum shapes not fully specified in the Module 3 brief
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Several fields were named in the Module 3 brief without an exact enum or shape: `StatementImport.status`, `Connection.status`, `Goal.status`, `Insight.severity`/`type`, `AdvisorMessage.toolCalls`, `HoldingSnapshot.totals`, `MonthlyPlan.lines[].categoryId` nullability, `Category.group` requiredness, uniqueness on `Category.name`/`Connection.provider`/`MerchantRule.pattern`, and clamping behaviour for `Debt.outstandingPaise` on overpayment.
+- **Decision:** Picked the simplest option consistent with the rest of the schema in each case (see `docs/DATA_MODEL.md` and the model files themselves for the exact resolution) rather than opening a design discussion per field, per CLAUDE.md §7.3 ("pick the simplest option that keeps the design generic, note it, and continue").
+- **Consequences:** Any of these can be revisited additively later (a new enum value, a follow-up ADR) without a breaking migration, since Mongoose enums/validators only reject at write time, not at read time.
+
+## ADR-017: Partial indexes, not `sparse`, for compound "optional field" indexes
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Verified live against Atlas (`pnpm seed:demo`): a plain `sparse` compound index only excludes a document when *every* indexed field is missing. Since `userId` is always present, `{userId, dedupeHash}` with `sparse: true` indexed every `Transaction` regardless of `dedupeHash`, so the unique constraint collided on the first two manual transactions (both indexed with an effective `dedupeHash: null`). Separately, the MongoDB driver's BSON serializer writes an unset field as an explicit `null` by default rather than omitting the key, which also defeats `$exists`-based exclusion unless disabled.
+- **Decision:** `src/lib/db/connection.ts` passes `ignoreUndefined: true` to `mongoose.connect`, so a field that was never set is genuinely absent from the stored document instead of `null`. Every compound index over an optional field (`Transaction.dedupeHash`/`recurringId`/`debtId`/`goalId`, `Debt.dueDate`, `Emi.recurringId`, `Insight.dismissedAt`) uses `partialFilterExpression: { <field>: { $exists: true } }` instead of `sparse: true`.
+- **Consequences:** Both changes are required together — `ignoreUndefined` without the partial filter still indexes explicit `null`s (if some other write path set one); the partial filter without `ignoreUndefined` still includes docs whose field was serialized to `null`. Any future compound index over an optional field must follow the same pattern, not plain `sparse`.
