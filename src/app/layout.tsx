@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Tamil } from "next/font/google";
+import localFont from "next/font/local";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
@@ -10,15 +10,28 @@ import { getSessionPreferences } from "@/lib/session-preferences";
 
 import "./globals.css";
 
-const inter = Inter({
+// Self-hosted (next/font/local), not next/font/google: Turbopack's build-time
+// Google Fonts fetch is intermittently flaky (Google occasionally returns a
+// multi-query-param URL shape Turbopack's resolver rejects with "queries have
+// exactly one entry"), which broke a Vercel deploy though the same commit
+// built fine locally. See docs/DECISIONS.md ADR-034.
+const inter = localFont({
+  src: "./fonts/inter-latin-variable.woff2",
+  weight: "100 900",
+  style: "normal",
   variable: "--font-inter",
-  subsets: ["latin"],
+  display: "swap",
 });
 
-const notoSansTamil = Noto_Sans_Tamil({
+const notoSansTamil = localFont({
+  src: [
+    { path: "./fonts/noto-sans-tamil-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/noto-sans-tamil-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/noto-sans-tamil-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/noto-sans-tamil-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-tamil",
-  subsets: ["tamil"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
