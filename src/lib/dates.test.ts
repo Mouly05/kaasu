@@ -4,8 +4,10 @@ import {
   daysLeftInMonth,
   endOfMonthIST,
   formatDay,
+  formatMonthLabel,
   monthKey,
   parseMonthKey,
+  shiftMonthKey,
   startOfMonthIST,
   todayIST,
 } from "./dates";
@@ -99,6 +101,29 @@ describe("daysLeftInMonth", () => {
 
   it("defaults to now", () => {
     expect(daysLeftInMonth()).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("shiftMonthKey", () => {
+  it("moves forward and backward within a year", () => {
+    expect(shiftMonthKey("2026-09", 1)).toBe("2026-10");
+    expect(shiftMonthKey("2026-09", -1)).toBe("2026-08");
+  });
+
+  it("rolls over year boundaries", () => {
+    expect(shiftMonthKey("2026-12", 1)).toBe("2027-01");
+    expect(shiftMonthKey("2027-01", -1)).toBe("2026-12");
+  });
+
+  it("supports multi-month jumps", () => {
+    expect(shiftMonthKey("2026-01", 13)).toBe("2027-02");
+  });
+});
+
+describe("formatMonthLabel", () => {
+  it("formats as 'MMM yyyy'", () => {
+    expect(formatMonthLabel("2026-10")).toBe("Oct 2026");
+    expect(formatMonthLabel("2027-01")).toBe("Jan 2027");
   });
 });
 

@@ -24,9 +24,7 @@ export function LanguageSelect({ initial }: { initial: Locale }) {
     startTransition(async () => {
       const result = await updatePreferences({ locale: next });
       if (result.ok) {
-        toast.success("Language saved", {
-          description: "Tamil screens arrive in a later update.",
-        });
+        toast.success("Language saved");
       } else {
         setValue(previous);
         toast.error(result.error.message);

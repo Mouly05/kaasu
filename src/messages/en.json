@@ -1,1 +1,116 @@
-{}
+{
+  "shell": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "expenses": "Expenses",
+      "budget": "Budget",
+      "recurring": "Recurring",
+      "debts": "Debts",
+      "goals": "Goals",
+      "statements": "Statements",
+      "investments": "Investments",
+      "advisor": "Advisor",
+      "tasks": "Tasks",
+      "settings": "Settings"
+    },
+    "bottomNav": {
+      "home": "Home",
+      "expenses": "Expenses",
+      "budget": "Budget",
+      "more": "More",
+      "addExpense": "Add expense"
+    },
+    "userMenu": {
+      "open": "Open user menu",
+      "theme": "Theme",
+      "language": "Language",
+      "settings": "Settings",
+      "signOut": "Sign out"
+    },
+    "quickAdd": {
+      "trigger": "Quick add",
+      "title": "Add expense",
+      "description": "Log a spend in a few seconds.",
+      "amount": "Amount",
+      "category": "Category",
+      "account": "Account",
+      "note": "Note",
+      "date": "Date",
+      "save": "Save",
+      "cancel": "Cancel",
+      "comingSoon": "Expense logging arrives in the next module."
+    },
+    "home": {
+      "greeting": "Hello",
+      "welcome": "Welcome",
+      "hiName": "Hi, {name}",
+      "dashboardComingTitle": "Your dashboard is on its way",
+      "dashboardComingBody": "Expenses, budgets and goals will show up here as they’re built.",
+      "reviewSettings": "Review settings"
+    }
+  },
+  "commandPalette": {
+    "trigger": "Search or run a command",
+    "placeholder": "Type a command or search…",
+    "empty": "No results found.",
+    "groupNavigate": "Navigate",
+    "groupActions": "Actions",
+    "actions": {
+      "addExpense": "Add expense",
+      "planMonth": "Plan this month",
+      "askAdvisor": "Ask advisor…"
+    },
+    "comingSoon": "Coming in a later module."
+  },
+  "settings": {
+    "theme": {
+      "label": "Theme",
+      "hint": "Light, dark or match your device."
+    },
+    "language": {
+      "label": "Language",
+      "hint": "Used for screens, reminders and the assistant."
+    }
+  },
+  "shared": {
+    "emptyState": {
+      "defaultTitle": "Nothing here yet",
+      "defaultDescription": "Once you add something, it’ll show up here."
+    },
+    "confirmDialog": {
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "monthSwitcher": {
+      "previous": "Previous month",
+      "next": "Next month"
+    },
+    "categoryPicker": {
+      "search": "Search categories…",
+      "recent": "Recent",
+      "all": "All categories",
+      "empty": "No categories found."
+    },
+    "accountPicker": {
+      "search": "Search accounts…",
+      "empty": "No accounts found."
+    }
+  },
+  "styleguide": {
+    "title": "Style guide",
+    "description": "Every shared component, in both themes and both languages.",
+    "sections": {
+      "amountInput": "Amount input",
+      "moneyText": "Money text",
+      "categoryPicker": "Category picker",
+      "accountPicker": "Account picker",
+      "datePicker": "Date picker",
+      "monthSwitcher": "Month switcher",
+      "statCard": "Stat card",
+      "progressRing": "Progress ring",
+      "emptyState": "Empty state",
+      "pageHeader": "Page header",
+      "confirmDialog": "Confirm dialog"
+    }
+  }
+}

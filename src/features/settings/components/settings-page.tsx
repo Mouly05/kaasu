@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Database, Download, Palette, Plug, Upload, UserRound } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { GitHubIcon } from "@/components/shared/github-icon";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import type { SettingsProfile } from "../queries";
 import { LanguageSelect } from "./language-select";
 import { SettingsRow, SettingsSection } from "./settings-section";
 import { SignOutButton } from "./sign-out-button";
+import { ThemeSelect } from "./theme-select";
 
 interface SettingsPageProps {
   profile: SettingsProfile;
@@ -21,7 +23,8 @@ const CONNECTIONS = [
   { name: "Telegram", hint: "Log expenses and get nudges by chat", module: "Assistant" },
 ];
 
-export function SettingsPage({ profile }: SettingsPageProps) {
+export async function SettingsPage({ profile }: SettingsPageProps) {
+  const t = await getTranslations("settings");
   const initials = (profile.name ?? profile.email).slice(0, 1).toUpperCase();
 
   return (
@@ -75,14 +78,11 @@ export function SettingsPage({ profile }: SettingsPageProps) {
         title="Preferences"
         description="How Kaasu looks and speaks to you."
       >
-        <SettingsRow label="Language" hint="Used for screens, reminders and the assistant.">
+        <SettingsRow label={t("language.label")} hint={t("language.hint")}>
           <LanguageSelect initial={profile.locale as Locale} />
         </SettingsRow>
-        <SettingsRow
-          label="Theme"
-          hint="Light, dark or match your device. Coming with the app shell."
-        >
-          <Badge variant="secondary">System</Badge>
+        <SettingsRow label={t("theme.label")} hint={t("theme.hint")}>
+          <ThemeSelect />
         </SettingsRow>
         <SettingsRow label="Currency and time zone" hint="Amounts and months follow these.">
           <span className="text-muted-foreground text-sm tabular-nums">

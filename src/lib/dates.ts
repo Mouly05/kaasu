@@ -3,7 +3,7 @@
  * in Kaasu is a calendar day or month in Asia/Kolkata. Functions take an
  * optional `now` so they can be tested deterministically.
  */
-import { differenceInCalendarDays, endOfMonth, startOfDay, startOfMonth } from "date-fns";
+import { addMonths, differenceInCalendarDays, endOfMonth, startOfDay, startOfMonth } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 export const IST = "Asia/Kolkata";
@@ -51,4 +51,14 @@ export function daysLeftInMonth(now: Date = new Date()): number {
 /** "30 Sep" (short) or "Wed, 30 Sep 2026" (long), always rendered in IST. */
 export function formatDay(date: Date, style: "short" | "long" = "short"): string {
   return formatInTimeZone(date, IST, style === "long" ? "EEE, d MMM yyyy" : "d MMM");
+}
+
+/** Moves a month key forward (positive delta) or back (negative), e.g. shiftMonthKey("2026-12", 1) → "2027-01". */
+export function shiftMonthKey(key: MonthKey, delta: number): MonthKey {
+  return monthKey(addMonths(parseMonthKey(key), delta));
+}
+
+/** "Oct 2026", for a MonthSwitcher label. */
+export function formatMonthLabel(key: MonthKey): string {
+  return formatInTimeZone(parseMonthKey(key), IST, "MMM yyyy");
 }

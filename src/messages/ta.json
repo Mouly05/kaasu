@@ -1,1 +1,116 @@
-{}
+{
+  "shell": {
+    "nav": {
+      "dashboard": "டாஷ்போர்டு",
+      "expenses": "செலவுகள்",
+      "budget": "பட்ஜெட்",
+      "recurring": "தொடர் செலவுகள்",
+      "debts": "கடன்கள்",
+      "goals": "இலக்குகள்",
+      "statements": "அறிக்கைகள்",
+      "investments": "முதலீடுகள்",
+      "advisor": "ஆலோசகர்",
+      "tasks": "பணிகள்",
+      "settings": "அமைப்புகள்"
+    },
+    "bottomNav": {
+      "home": "முகப்பு",
+      "expenses": "செலவுகள்",
+      "budget": "பட்ஜெட்",
+      "more": "மேலும்",
+      "addExpense": "செலவு சேர்"
+    },
+    "userMenu": {
+      "open": "பயனர் மெனுவைத் திற",
+      "theme": "தீம்",
+      "language": "மொழி",
+      "settings": "அமைப்புகள்",
+      "signOut": "வெளியேறு"
+    },
+    "quickAdd": {
+      "trigger": "விரைவாகச் சேர்",
+      "title": "செலவு சேர்",
+      "description": "ஒரு சில நொடிகளில் செலவைப் பதிவு செய்யுங்கள்.",
+      "amount": "தொகை",
+      "category": "வகை",
+      "account": "கணக்கு",
+      "note": "குறிப்பு",
+      "date": "தேதி",
+      "save": "சேமி",
+      "cancel": "ரத்துசெய்",
+      "comingSoon": "செலவு பதிவு அடுத்த மாதிரியில் வரும்."
+    },
+    "home": {
+      "greeting": "வணக்கம்",
+      "welcome": "வரவேற்கிறோம்",
+      "hiName": "வணக்கம், {name}",
+      "dashboardComingTitle": "உங்கள் டாஷ்போர்டு தயாராகி வருகிறது",
+      "dashboardComingBody": "செலவுகள், பட்ஜெட்டுகள் மற்றும் இலக்குகள் உருவாக்கப்படும்போது இங்கே தோன்றும்.",
+      "reviewSettings": "அமைப்புகளைப் பார்க்க"
+    }
+  },
+  "commandPalette": {
+    "trigger": "தேடு அல்லது கட்டளை இயக்கு",
+    "placeholder": "கட்டளை அல்லது தேடலைத் தட்டச்சு செய்யவும்…",
+    "empty": "முடிவுகள் இல்லை.",
+    "groupNavigate": "செல்",
+    "groupActions": "செயல்கள்",
+    "actions": {
+      "addExpense": "செலவு சேர்",
+      "planMonth": "இந்த மாதத்தைத் திட்டமிடு",
+      "askAdvisor": "ஆலோசகரிடம் கேளுங்கள்…"
+    },
+    "comingSoon": "இது அடுத்த மாதிரியில் வரும்."
+  },
+  "settings": {
+    "theme": {
+      "label": "தீம்",
+      "hint": "லைட், டார்க் அல்லது உங்கள் சாதனத்திற்கு ஏற்ப."
+    },
+    "language": {
+      "label": "மொழி",
+      "hint": "திரைகள், நினைவூட்டல்கள் மற்றும் உதவியாளருக்குப் பயன்படுத்தப்படும்."
+    }
+  },
+  "shared": {
+    "emptyState": {
+      "defaultTitle": "இதுவரை எதுவும் இல்லை",
+      "defaultDescription": "நீங்கள் ஏதாவது சேர்த்தவுடன், அது இங்கே தோன்றும்."
+    },
+    "confirmDialog": {
+      "confirm": "உறுதிசெய்",
+      "cancel": "ரத்துசெய்"
+    },
+    "monthSwitcher": {
+      "previous": "முந்தைய மாதம்",
+      "next": "அடுத்த மாதம்"
+    },
+    "categoryPicker": {
+      "search": "வகைகளைத் தேடு…",
+      "recent": "சமீபத்தியவை",
+      "all": "அனைத்து வகைகளும்",
+      "empty": "வகைகள் எதுவும் இல்லை."
+    },
+    "accountPicker": {
+      "search": "கணக்குகளைத் தேடு…",
+      "empty": "கணக்குகள் எதுவும் இல்லை."
+    }
+  },
+  "styleguide": {
+    "title": "வடிவமைப்பு வழிகாட்டி",
+    "description": "ஒவ்வொரு பகிரப்பட்ட கூறும், இரு தீம்களிலும் இரு மொழிகளிலும்.",
+    "sections": {
+      "amountInput": "தொகை உள்ளீடு",
+      "moneyText": "பண உரை",
+      "categoryPicker": "வகை தேர்வி",
+      "accountPicker": "கணக்கு தேர்வி",
+      "datePicker": "தேதி தேர்வி",
+      "monthSwitcher": "மாத மாற்றி",
+      "statCard": "புள்ளிவிவர அட்டை",
+      "progressRing": "முன்னேற்ற வளையம்",
+      "emptyState": "வெற்று நிலை",
+      "pageHeader": "பக்க தலைப்பு",
+      "confirmDialog": "உறுதிப்படுத்தல் உரையாடல்"
+    }
+  }
+}
