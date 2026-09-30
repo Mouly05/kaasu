@@ -106,6 +106,14 @@ export function formatINR(paise: Paise, options: FormatINROptions = {}): string 
   const rupees = (paise || 0) / 100; // normalise -0 so it never renders as "-₹0"
 
   if (options.compact) {
+    // Below the smallest compact threshold (1,000), `notation: "compact"` never
+    // adds a K/L/Cr suffix — it should format identically to a plain integer.
+    // Bypassing it here avoids a real cross-ICU-version inconsistency: some
+    // ICU builds still apply `maximumFractionDigits: 1`'s rounding step in
+    // this range, rendering "999.0" instead of "999".
+    if (Math.abs(rupees) < 1000) {
+      return getFormatter("fixed-0", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rupees);
+    }
     return getFormatter("compact", {
       notation: "compact",
       maximumFractionDigits: 1,

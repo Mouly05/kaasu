@@ -72,9 +72,18 @@ export function formatDay(date: Date, style: "short" | "long" = "short"): string
   return formatInTimeZone(date, IST, style === "long" ? "EEE, d MMM yyyy" : "d MMM");
 }
 
-/** Moves a month key forward (positive delta) or back (negative), e.g. shiftMonthKey("2026-12", 1) → "2027-01". */
+/**
+ * Moves a month key forward (positive delta) or back (negative), e.g.
+ * shiftMonthKey("2026-12", 1) → "2027-01". `addMonths` reads/writes a Date's
+ * calendar fields via the *system's local timezone*, so the instant is
+ * round-tripped through `toZonedTime`/`fromZonedTime` first — the same
+ * pattern every other IST-aware helper in this file uses — otherwise this
+ * silently breaks on any machine whose local timezone isn't IST (e.g. a UTC
+ * CI runner), rolling the wrong side of a month/year boundary.
+ */
 export function shiftMonthKey(key: MonthKey, delta: number): MonthKey {
-  return monthKey(addMonths(parseMonthKey(key), delta));
+  const shifted = addMonths(toZonedTime(parseMonthKey(key), IST), delta);
+  return monthKey(fromZonedTime(shifted, IST));
 }
 
 /** "Oct 2026", for a MonthSwitcher label. */
