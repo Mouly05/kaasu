@@ -8,7 +8,7 @@ Status: ⬜ not started · 🟡 in progress · ✅ done
 | 1   | Foundation (scaffold, tooling, shadcn, env, money, dates, CI)           | ✅     | 2026-09-30           |
 | 2   | DB connection + Auth (Mongoose, Auth.js GitHub, allowlist, crypto)      | ✅     | 2026-09-30           |
 | 3   | Data layer (Mongoose models, Zod schemas, default categories, seed)    | ✅     | 2026-09-30           |
-| 4   | App shell & design system (sidebar, bottom nav, ⌘K, theme, i18n wiring) | ⬜     |                      |
+| 4   | App shell & design system (sidebar, bottom nav, ⌘K, theme, i18n wiring) | ✅     | 2026-09-30           |
 | 5   | Expenses (quick add, list, categories)                                  | ⬜     |                      |
 | 6   | Recurring / fixed expenses                                              | ⬜     |                      |
 | 7   | Monthly budget                                                          | ⬜     |                      |
@@ -83,3 +83,24 @@ Notes:
 - `pnpm seed:demo` **was** run against the real Atlas cluster (`.env.local`'s `MONGODB_URI`), twice in a row to confirm idempotency (identical counts both times, no duplicate-key errors on the second run): 3 Accounts, 17 Categories, 50 Transactions, 4 Recurring, 1 Emi, 2 MonthlyPlan, 2 Income, 2 Debt, 2 Goal, 1 StatementImport, 3 MerchantRule, 1 Connection, 1 HoldingSnapshot, 3 Task, 3 AdvisorMessage, 2 Insight. Indexes spot-checked live via `Model.collection.indexes()`: Transaction has `(userId,date)`, the unique partial `(userId,dedupeHash)`, and the text index; MonthlyPlan has the unique `(userId,monthKey)`. First-login bootstrap verified separately (fresh user → exactly 17 categories, unchanged on a second call).
 - This live run caught a real bug — a plain `sparse` compound index doesn't exclude a document just because *one* field is missing (only when *all* indexed fields are missing), so `{userId, dedupeHash}` was indexing every transaction and colliding. Fixed with `ignoreUndefined: true` on the connection plus `partialFilterExpression` on every compound index over an optional field, see ADR-017.
 - Every module from the previous Module 3 onward shifted down by one (old "3 App shell" → 4, ... old "16 Hardening" → 17) to make room for this module.
+
+## Module 4 — App shell & design system
+
+- [x] Theme: `next-themes` wired into the root layout (`attribute="class"`, `enableSystem`), seeded from `User.theme` server-side and persisted back via a new `updateTheme` action; `prefers-reduced-motion`-guarded colour transition on `<body>`
+- [x] Fonts: `Inter` (UI) + `Noto Sans Tamil` (auto-applied via `[data-locale="ta"]` overriding `--font-sans`); money/number figures use `tabular-nums`, not a separate monospace face
+- [x] New CSS tokens: `--positive`/`--warning`/`--negative` (emerald/amber/rose, light + dark), backing `MoneyText` and `ProgressRing`
+- [x] `next-intl` wired without URL routing (ADR-018): `src/lib/session-preferences.ts` + `src/i18n/request.ts` resolve locale/theme once per request; `src/messages/{en,ta}.json` populated for every string this module introduces; Settings' Language/Theme rows and the home page greeting now go through `t()`
+- [x] App shell for `(app)`: shadcn-generated `sidebar.tsx` (ADR-020) wrapped as `AppSidebar` (11 nav destinations), mobile `BottomNav` (Home/Expenses/floating "+"/Budget/More sheet), `UserMenu` (theme + language + settings + sign out)
+- [x] Global Quick Add (`⌘/Ctrl+N`, "+", or command palette): responsive Dialog/Drawer, wired to a real (if minimal) `submitQuickAdd` action in `src/features/expenses/actions.ts` that validates and returns `ok()` without persisting — Module 5 fills in the write
+- [x] Command palette (`⌘K`): navigate to any of the 11 destinations, or trigger Quick Add / a "coming soon" toast for Plan-this-month and Ask-advisor
+- [x] Shared components in `src/components/shared/`: `AmountInput`, `MoneyText`, `CategoryPicker`, `AccountPicker`, `DatePickerIST`, `MonthSwitcher`, `StatCard`, `ProgressRing`, `EmptyState`, `PageHeader`, `ConfirmDialog` — all built on `src/lib/money.ts`/`src/lib/dates.ts` (two new date helpers: `shiftMonthKey`, `formatMonthLabel`), never reimplementing formatting/parsing
+- [x] `/styleguide` (dev-only, `requirePageUser()` + `NODE_ENV` guard): one instance of every shared component, themed/localised via the real shell switchers
+- [x] Component tests: `amount-input.test.tsx`, `money-text.test.tsx`
+
+Notes:
+
+- 260 unit tests (up from 244): +11 for `shiftMonthKey`/`formatMonthLabel`, +11 for `AmountInput`, +6 for `MoneyText`. Testing Library's auto-cleanup needed an explicit `afterEach(cleanup)` in `src/test/setup.ts` since `vitest.config.mts` doesn't set `test.globals`.
+- `pnpm dlx shadcn@latest add sidebar` also generated `src/hooks/use-mobile.ts`; its `setState`-inside-`useEffect` body tripped the repo's `react-hooks/set-state-in-effect` lint rule, so it was rewritten to delegate to a new `src/hooks/use-media-query.ts` (`useSyncExternalStore`-based, also used for the Quick Add drawer/dialog breakpoint switch) — same behavior, no lint violation. The same rule required a `useSyncExternalStore`-based `useHydrated()` hook in `ThemeSelect` instead of the common `useEffect(() => setMounted(true), [])` idiom.
+- Verified against the real Atlas cluster: signed in as the seeded demo user (`demo@kaasu.local`) via a locally-minted session JWT, `pnpm build && pnpm start` smoke test (redirects, security headers, `/styleguide` 404s outside dev), then `pnpm dev` with the same session to confirm `/`, `/settings`, and `/styleguide` render every new component with no server errors, and that switching the demo user's `User.locale` to `ta` correctly flips `<html lang>`/nav copy to Tamil end-to-end.
+- Not yet verified in an actual browser: the real GitHub OAuth round-trip, visual dark-mode/light-mode appearance, and keyboard-only operation of the command palette / Quick Add — same gap Module 2 left for Playwright (Module 17).
+- Nav links to `/expenses`, `/budget`, `/recurring`, `/debts`, `/goals`, `/statements`, `/investments`, `/advisor`, `/tasks` intentionally 404 until their modules ship — no "coming soon" flags to retire later.

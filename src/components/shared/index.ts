@@ -1,3 +1,21 @@
 // App-wide composites (AmountInput, CategoryPicker, EmptyState…).
+export { AccountPicker } from "./account-picker";
+export { AmountInput } from "./amount-input";
+export { AppSidebar } from "./app-sidebar";
+export { BottomNav } from "./bottom-nav";
+export { CategoryPicker } from "./category-picker";
+export { CommandPalette } from "./command-palette";
+export { ConfirmDialog } from "./confirm-dialog";
+export { DatePickerIST } from "./date-picker-ist";
+export { EmptyState } from "./empty-state";
 export { GitHubIcon } from "./github-icon";
 export { Logo } from "./logo";
+export { MonthSwitcher } from "./month-switcher";
+export { MoneyText } from "./money-text";
+export { NAV_ITEMS } from "./nav-items";
+export { PageHeader } from "./page-header";
+export { ProgressRing } from "./progress-ring";
+export { QuickAddSheet } from "./quick-add-sheet";
+export { ShellShortcuts, useShell } from "./shell-shortcuts";
+export { StatCard } from "./stat-card";
+export { UserMenu } from "./user-menu";
