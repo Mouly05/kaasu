@@ -27,3 +27,18 @@ export const incomeInputSchema = z.object({
 });
 
 export type IncomeInput = z.infer<typeof incomeInputSchema>;
+
+export const budgetTargetSchema = z
+  .object({
+    needsTargetPct: z.number().int().min(0).max(100),
+    wantsTargetPct: z.number().int().min(0).max(100),
+    savingsTargetPct: z.number().int().min(0).max(100),
+    debtTargetPct: z.number().int().min(0).max(100),
+  })
+  .refine(
+    (value) =>
+      value.needsTargetPct + value.wantsTargetPct + value.savingsTargetPct + value.debtTargetPct === 100,
+    { message: "The four targets must add up to 100%", path: ["needsTargetPct"] },
+  );
+
+export type BudgetTargetInput = z.infer<typeof budgetTargetSchema>;

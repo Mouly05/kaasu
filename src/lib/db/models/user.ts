@@ -21,6 +21,11 @@ const userSchema = new Schema(
     payday: { type: Number, min: 1, max: 31 },
     salaryMinPaise: paiseField({ required: false }),
     salaryMaxPaise: paiseField({ required: false }),
+    // Salary analyser's editable needs/wants/savings/debt split target. Defaults to 50/30/20/0.
+    needsTargetPct: { type: Number, min: 0, max: 100, default: 50 },
+    wantsTargetPct: { type: Number, min: 0, max: 100, default: 30 },
+    savingsTargetPct: { type: Number, min: 0, max: 100, default: 20 },
+    debtTargetPct: { type: Number, min: 0, max: 100, default: 0 },
     // 24h "HH:mm", e.g. "20:00".
     dailyReminderTime: { type: String, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
     // `encrypt()` ciphertext (v1:iv:tag:data), never plaintext. Never selected

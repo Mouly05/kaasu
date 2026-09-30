@@ -1,10 +1,12 @@
 import Image from "next/image";
-import { Database, Download, Palette, Plug, Upload, UserRound } from "lucide-react";
+import { Database, Download, Palette, Plug, UserRound, Upload, Wallet } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { GitHubIcon } from "@/components/shared/github-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SalaryProfileForm } from "@/features/salary/components/salary-profile-form";
+import type { SalaryPreferences } from "@/features/salary/queries";
 import { formatDay } from "@/lib/dates";
 import type { Locale } from "@/lib/locales";
 
@@ -16,6 +18,7 @@ import { ThemeSelect } from "./theme-select";
 
 interface SettingsPageProps {
   profile: SettingsProfile;
+  salaryPreferences: SalaryPreferences;
 }
 
 const CONNECTIONS = [
@@ -23,7 +26,7 @@ const CONNECTIONS = [
   { name: "Telegram", hint: "Log expenses and get nudges by chat", module: "Assistant" },
 ];
 
-export async function SettingsPage({ profile }: SettingsPageProps) {
+export async function SettingsPage({ profile, salaryPreferences }: SettingsPageProps) {
   const t = await getTranslations("settings");
   const initials = (profile.name ?? profile.email).slice(0, 1).toUpperCase();
 
@@ -89,6 +92,15 @@ export async function SettingsPage({ profile }: SettingsPageProps) {
             {profile.currency} · {profile.timezone}
           </span>
         </SettingsRow>
+      </SettingsSection>
+
+      <SettingsSection
+        id="salary"
+        icon={Wallet}
+        title="Salary"
+        description="Your payday and expected range — the budget planner defaults to the minimum."
+      >
+        <SalaryProfileForm initial={salaryPreferences} />
       </SettingsSection>
 
       <SettingsSection

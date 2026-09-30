@@ -260,6 +260,118 @@
       "created": "EMI created"
     }
   },
+  "budget": {
+    "buckets": {
+      "must": "Must",
+      "debt": "Debt",
+      "save": "Save",
+      "emi": "EMI",
+      "want": "Want",
+      "buffer": "Buffer"
+    },
+    "summaryBar": {
+      "income": "Income",
+      "planned": "Planned",
+      "unallocated": "Unallocated",
+      "balanced": "Every rupee has a job.",
+      "over": "You've planned more than you expect to earn."
+    },
+    "planner": {
+      "title": "Budget planner",
+      "salaryAnalyser": "Salary analyser",
+      "autoDraft": "Auto-draft",
+      "copyLastMonth": "Copy last month",
+      "addLine": "Add line",
+      "emptyBucket": "Nothing planned here yet",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "togglePaid": "Toggle paid",
+      "priorityLabel": "P{priority}",
+      "deferredToLabel": "→ {month}",
+      "deferredFromLabel": "from {month}",
+      "defer": "Defer to next month",
+      "deferred": "Deferred to next month",
+      "edit": "Edit",
+      "delete": "Delete",
+      "vsActualTitle": "Budget vs actual"
+    },
+    "lineForm": {
+      "addTitle": "Add a line",
+      "editTitle": "Edit line",
+      "description": "Label, amount, bucket and priority.",
+      "label": "Label",
+      "amount": "Amount",
+      "bucket": "Bucket",
+      "priority": "Priority",
+      "priorityLabel": "P{priority}",
+      "category": "Category",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "whatIf": {
+      "title": "If you get the max…",
+      "sliderLabel": "Salary this month",
+      "noCandidates": "No want or deferred lines to fund yet.",
+      "funded": "Funded",
+      "partiallyFunded": "{amount} funded",
+      "notFunded": "Not funded"
+    },
+    "vsActual": {
+      "empty": "No spend logged against this plan yet."
+    },
+    "rollover": {
+      "trigger": "Roll over unspent",
+      "title": "Roll over this month's unspent amount",
+      "description": "Send what's left under budget to next month's buffer, or into a goal.",
+      "total": "Total unspent",
+      "destination": "Send it to",
+      "nextMonthBuffer": "Next month's buffer",
+      "cancel": "Cancel",
+      "apply": "Roll over",
+      "applied": "Rolled over {amount}"
+    }
+  },
+  "salary": {
+    "page": {
+      "title": "Salary analyser",
+      "description": "Income history, your needs/wants/savings/debt split, and runway.",
+      "fixedCostRatio": "Fixed-cost ratio"
+    },
+    "profile": {
+      "payday": "Payday (day of month)",
+      "min": "Salary — minimum",
+      "max": "Salary — maximum",
+      "save": "Save",
+      "saved": "Salary details saved",
+      "rangeError": "Minimum must not exceed maximum."
+    },
+    "incomeHistory": {
+      "title": "Monthly income"
+    },
+    "split": {
+      "title": "Needs / wants / savings / debt",
+      "savingsRate": "{rate}% savings rate",
+      "needs": "Needs",
+      "wants": "Wants",
+      "savings": "Savings",
+      "debt": "Debt",
+      "editTarget": "Edit target split",
+      "editTargetDescription": "Must add up to 100%.",
+      "total": "Total: {total}%",
+      "saved": "Target split saved",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "runway": {
+      "label": "Runway if income stopped",
+      "months": "{months, plural, one {# month} other {# months}}",
+      "hint": "Based on your emergency fund and essential spend.",
+      "noFundHint": "Add an emergency-fund goal to see your runway."
+    },
+    "insights": {
+      "title": "Trends"
+    }
+  },
   "styleguide": {
     "title": "Style guide",
     "description": "Every shared component, in both themes and both languages.",

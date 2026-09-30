@@ -15,7 +15,14 @@ export interface MonthlyPlanLine {
   priority: number;
   bucket: MonthlyPlanLineBucket;
   status: MonthlyPlanLineStatus;
+  /** Set when this line was deferred forward; the month key it was pushed to. */
   deferredTo?: string;
+  /** Set when this line was created by deferring a line from an earlier month. */
+  deferredFrom?: string;
+  /** Auto-draft provenance, so budget-vs-actual can match this line to real spend. */
+  recurringId?: Types.ObjectId;
+  debtId?: Types.ObjectId;
+  goalId?: Types.ObjectId;
 }
 
 export interface MonthlyPlanDoc {
@@ -39,6 +46,10 @@ const monthlyPlanLineSchema = new Schema<MonthlyPlanLine>(
     bucket: { type: String, enum: MONTHLY_PLAN_LINE_BUCKETS, required: true },
     status: { type: String, enum: MONTHLY_PLAN_LINE_STATUSES, default: "planned" },
     deferredTo: { type: String, match: MONTH_KEY_RE },
+    deferredFrom: { type: String, match: MONTH_KEY_RE },
+    recurringId: { type: Schema.Types.ObjectId, ref: "Recurring" },
+    debtId: { type: Schema.Types.ObjectId, ref: "Debt" },
+    goalId: { type: Schema.Types.ObjectId, ref: "Goal" },
   },
   { _id: false },
 );

@@ -259,3 +259,59 @@ Format: context → decision → consequences. Newest at the bottom. Never edit 
 - **Context:** `listEmis`/`EmiSummary` already existed in `features/debts/queries.ts` before this module (Module 3), for the Debts overview. Module 6 also needs to read `Emi` docs, to drive the "mark as paid" button on EMI-kind recurring cards.
 - **Decision:** Extend the existing `debts/queries.ts` (added `getEmiById`, and `recurringId`/a shared `toEmiSummary` mapper to the existing `EmiSummary`) rather than adding a second, near-identical set of Emi queries under `features/recurring/`. `features/recurring/` imports `listEmis`/`getEmiById` from `@/features/debts/queries` directly.
 - **Consequences:** One cross-feature read import, in exchange for a single source of truth for "what is an EMI, as read from the DB." If `debts/queries.ts` ever needs to shed the recurring-specific `recurringId` field for its own simplicity, that's a signal to finally give Emi reads their own `features/emi/` (or similar) home — not a decision worth making preemptively here.
+
+## ADR-039: Auto-draft buckets `Recurring`/`Goal`/category spend by their own existing fields, not a new config
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** The Module 7 brief's auto-draft needs to place each active Recurring item, each active Goal, and each category's average variable spend into one of the waterfall's six buckets (must/debt/save/emi/want/buffer).
+- **Decision:** `bucketForRecurringKind` (`features/budget/service.ts`) maps `Recurring.kind` directly: `rent`/`support`/`fixed` → `must`, `subscription` → `want`, `sip` → `save`, `emi` → `emi` — no separate "EMIs due this month" lookup against `Emi.installments` is needed, since an EMI's paired `Recurring` (Module 6, ADR-037) is already `frequency: "monthly"` with the right `amountPaise`. `bucketForGoalKind` maps a `purchase` wishlist goal to `want` (discretionary) and every other kind to `save`. `bucketForCategoryGroup` mirrors `Category.group` 1:1, except `debt`-group categories are skipped in the auto-draft entirely — open Debts already cover that bucket, and including both would double-count.
+- **Consequences:** Zero new schema/config for bucketing; a recurring item's kind or a category's group is the single source of truth for where it lands in the waterfall. Reclassifying a recurring item (e.g. `fixed` → `subscription`) changes its bucket automatically the next time a plan is drafted or edited.
+
+## ADR-040: Suggested debt repayment and goal contribution are the simplest defensible defaults, not a real amortization plan
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** `Debt` has no installment/schedule field (that's what `Emi` is for), and `Goal` has no stored "monthly contribution" — the auto-draft still needs a starting number for both, per CLAUDE.md §7.3 ("pick the simplest option ... note it, and continue").
+- **Decision:** `computeSuggestedDebtRepayment` repeats the debt's own most recent repayment amount (informal debts are typically paid in similar instalments), or the full outstanding balance for a debt with no repayment history yet — always clamped to what's actually owed. `computeSuggestedGoalContribution` paces evenly to `targetDate` when one is set (`remaining / monthsRemaining`, floored at 1 month), or falls back to the goal's own recent contribution average for an open-ended goal (0 for a brand-new one) — always clamped to what remains.
+- **Consequences:** Both are drafts the user edits, not final numbers — the real, non-formulaic repayment plan a user has already worked out (as in the user's real October figures, e.g. five separate informal debts each with their own repeated instalment) is expected to differ from the suggestion and gets corrected in the planner. Revisit if `Debt` ever grows a real instalment-plan field.
+
+## ADR-041: `MonthlyPlanLine` gains `deferredFrom` and `recurringId`/`debtId`/`goalId` — additive, per CLAUDE.md §7.4
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** "Defer to next month" needs a trail back to where a line came from (the brief's own wording), and budget-vs-actual needs to match a plan line back to the real spend behind it — a plan line drafted from a `Recurring`/`Debt`/`Goal` should compare against transactions carrying that same link, not just a category guess.
+- **Decision:** Four new optional fields on the existing embedded `MonthlyPlanLine` schema (Module 3): `deferredFrom` (a month key, mirroring the existing `deferredTo`) and `recurringId`/`debtId`/`goalId` (mirroring `Transaction`'s own optional refs, ADR-011 style). All additive — no migration, no change to any existing document.
+- **Consequences:** `deferLineToNextMonth` (`features/budget/service.ts`) only carries the *immediate* hop, not a full multi-month chain — deferring an already-once-deferred line overwrites `deferredFrom` with the newer origin. `getPlanActuals` (`features/budget/queries.ts`) matches a line to real spend via its link first, falling back to a plain `categoryId` match (variable transactions only) for manually-added lines with no provenance.
+
+## ADR-042: Priority reorder is ▲/▼ buttons, not pointer drag-and-drop
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** The brief says "drag to reorder priority." This repo has no drag-and-drop library (CLAUDE.md §3: "prefer the platform"; §10: "keyboard reachable, visible focus"), and the existing `SwipeableRow` (Module 5) is a *horizontal* swipe-to-reveal-actions pattern, not vertical reordering.
+- **Decision:** `swapLinePriority` (`features/budget/service.ts`) swaps two lines' `priority` values; the UI exposes this as move-up/move-down icon buttons per line (`PlanLineRow`), each swapping with its immediate neighbour within the same bucket.
+- **Consequences:** Fully keyboard- and screen-reader-operable with no new dependency, at the cost of one extra tap per position moved versus a single drag gesture. Revisit with a real drag library only if user feedback says the buttons are too slow in practice.
+
+## ADR-043: `saveMonthlyPlanLines` replaces the whole `lines` array — plan lines have no `_id` to address individually
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** `MonthlyPlanLine`'s embedded schema is `{ _id: false }` (Module 3) — there is no stable per-line identifier to target with a `$set: {"lines.$[line]. ...}` style update.
+- **Decision:** One write primitive, `saveMonthlyPlanLines` (`features/budget/actions.ts`), takes the month's entire `lines` array and replaces it wholesale. Every planner mutation (add, edit, delete, reorder, mark-paid) computes the next array client-side (via `features/budget/service.ts`'s pure functions) and calls this one action. `deferPlanLine` and `applyRollover`'s buffer-line path are the two exceptions, since they must also touch a *second* month's document.
+- **Consequences:** Simple to reason about and test (the pure functions are the only place the array shape changes), at the cost of sending the full array on every small edit — acceptable at this app's scale (a personal plan's line count is at most a few dozen). Concurrent edits from two tabs would silently clobber each other; not a concern for a single-owner-today app (CLAUDE.md §1).
+
+## ADR-044: The salary analyser's "savings rate" is leftover-based, not the savings-category split
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** The brief asks for both a "savings rate %" and a "needs/wants/savings/debt split ... vs target" as two separate line items — if both meant the same number, one would be redundant.
+- **Decision:** `computeBudgetSplit` (`features/salary/service.ts`) reports `savingsPercent` (actual spend in savings/investment-group categories, as % of income — one quarter of the 4-way split) *and* a distinct `savingsRatePercent` = `(income − needs − wants − debt) / income` — money not consumed by necessities, wants or debt, whether or not it was formally "saved" anywhere. The latter can go negative under deficit spending (needs+wants+debt exceeding income).
+- **Consequences:** A user who under-spends but never formally logs a SIP/gold purchase still sees a meaningful, non-zero savings rate. The two numbers can legitimately diverge (e.g. money just sitting in a bank account, uncategorised) — expected, not a bug.
+
+## ADR-045: The "onboarding step" for salary profile is deferred — no onboarding flow exists yet anywhere in the app
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** The Module 7 brief asks for the salary profile to live in "settings + onboarding step." `User.onboardingDone` and `settings/schema.ts`'s `onboardingSchema` have existed unused since Module 3 — no module has built an actual onboarding wizard, and this module doesn't need one just to set two numbers and a day-of-month.
+- **Decision:** `SalaryProfileForm` (payday, salary min/max) lives only in Settings' new "Salary" section for now. Per CLAUDE.md §7.3, building a first-ever onboarding flow is out of scope for a budget-and-salary module and belongs with whichever future module actually needs to gate first-run behaviour on it.
+- **Consequences:** A brand-new user must find Settings themselves to set a salary range before the planner or safe-to-spend (Module 5) show real numbers — same gap ADR-033 already accepted for Module 5. Revisit together whenever onboarding is actually built.
+
+## ADR-046: Rollover and budget-vs-actual are computed once at page load, not kept live-reactive to unsaved client-side plan edits
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** `PlannerClient` holds its own local copy of `lines` that diverges from the server-rendered `plan.lines` the moment the user adds, edits, reorders, or deletes a line (each mutation is persisted individually via `saveMonthlyPlanLines`, ADR-043). Re-deriving `getPlanActuals`'s rows client-side by re-zipping them against the *current* local `lines` array by index would silently misalign the moment the array is reordered or resized.
+- **Decision:** `computeBudgetVsActual`/`computeRolloverCandidates`/`computeTotalRollover` run once, server-side, in `/budget/[monthKey]/page.tsx`, over the plan as loaded from the DB; `PlannerClient` and `RolloverDialog` receive the results as plain props and never recompute them from local edits.
+- **Consequences:** Both figures reflect the plan as of the last full page load/`router.refresh()` (which `autoDraftPlan`/`copyLastMonthPlan` already trigger), not every keystroke. Acceptable for two features that are naturally occasional, deliberate actions (checking progress, a month-end rollover) rather than something a user watches update line-by-line while editing.
