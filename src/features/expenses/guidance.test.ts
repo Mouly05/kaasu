@@ -15,6 +15,7 @@ function baseInput(overrides: Partial<DailyGuidanceInput> = {}): DailyGuidanceIn
     categories: [],
     thisWeekSpendPaise: 0,
     sameWeekLastMonthSpendPaise: 0,
+    hasIncomeData: true,
     ...overrides,
   };
 }
@@ -51,6 +52,13 @@ describe("computeDailyGuidance", () => {
   it("reflects an over safe-to-spend status", () => {
     const nudges = computeDailyGuidance(baseInput({ safeToSpend: OVER }));
     expect(nudges[0]).toMatchObject({ id: "safe-to-spend", severity: "critical" });
+  });
+
+  it("softens to an info nudge with no income data, even though the math computes 'over'", () => {
+    const zeroData: SafeToSpendResult = { rawPaise: 0, safeTodayPaise: 0, status: "over" };
+    const nudges = computeDailyGuidance(baseInput({ safeToSpend: zeroData, hasIncomeData: false }));
+    expect(nudges[0]).toMatchObject({ id: "safe-to-spend", severity: "info" });
+    expect(nudges[0]!.message).not.toMatch(/over|used up/i);
   });
 
   it("is inclusive at the 80% category boundary", () => {

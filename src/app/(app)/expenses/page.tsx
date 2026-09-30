@@ -81,6 +81,7 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/expense
     categories: guidanceCategories,
     thisWeekSpendPaise: safeToSpendData.thisWeekSpendPaise,
     sameWeekLastMonthSpendPaise: safeToSpendData.sameWeekLastMonthSpendPaise,
+    hasIncomeData: safeToSpendData.expectedIncomePaise > 0,
   });
 
   const exportParams = new URLSearchParams(

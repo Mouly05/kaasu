@@ -1,5 +1,6 @@
 // App-wide composites (AmountInput, CategoryPicker, EmptyState…).
 export { AccountPicker } from "./account-picker";
+export { AddExpenseButton } from "./add-expense-button";
 export { AmountInput } from "./amount-input";
 export { AppSidebar } from "./app-sidebar";
 export { BottomNav } from "./bottom-nav";

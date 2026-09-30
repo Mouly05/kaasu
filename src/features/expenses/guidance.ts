@@ -32,6 +32,13 @@ export interface DailyGuidanceInput {
   categories: CategoryProgress[];
   thisWeekSpendPaise: Paise;
   sameWeekLastMonthSpendPaise: Paise;
+  /**
+   * Whether we actually know the user's income (salary range or logged
+   * income this month) — false for a brand-new user. With no income data,
+   * `safeToSpend` mechanically computes to `"over"` (0 income − 0 spend = 0),
+   * which isn't a real over-budget alarm; the nudge is softened accordingly.
+   */
+  hasIncomeData: boolean;
 }
 
 const SEVERITY_RANK: Record<NudgeSeverity, number> = { critical: 0, warning: 1, info: 2 };
@@ -69,7 +76,14 @@ function categoryNudge(
   return null;
 }
 
-function safeToSpendNudge(result: SafeToSpendResult): Nudge {
+function safeToSpendNudge(result: SafeToSpendResult, hasIncomeData: boolean): Nudge {
+  if (!hasIncomeData) {
+    return {
+      id: "safe-to-spend",
+      severity: "info",
+      message: "Set your salary in Settings to see your real safe-to-spend number.",
+    };
+  }
   if (result.status === "over") {
     return {
       id: "safe-to-spend",
@@ -123,7 +137,7 @@ export function computeDailyGuidance(input: DailyGuidanceInput): Nudge[] {
 
   const weekNudge = weekPaceNudge(input.thisWeekSpendPaise, input.sameWeekLastMonthSpendPaise);
 
-  const nudges: Nudge[] = [...categoryNudges, safeToSpendNudge(input.safeToSpend)];
+  const nudges: Nudge[] = [...categoryNudges, safeToSpendNudge(input.safeToSpend, input.hasIncomeData)];
   if (weekNudge) nudges.push(weekNudge);
 
   // Array.prototype.sort is stable, so equal-severity nudges keep their

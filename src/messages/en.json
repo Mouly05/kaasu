@@ -126,7 +126,8 @@
       "status": {
         "on_track": "On track",
         "tight": "Tight",
-        "over": "Over budget"
+        "over": "Over budget",
+        "noData": "Set up your salary"
       },
       "perDay": "safe to spend today",
       "noIncomeHint": "Set your salary in Settings for a real number.",

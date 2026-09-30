@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { AddExpenseButton } from "@/components/shared/add-expense-button";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { BottomNav } from "@/components/shared/bottom-nav";
 import { CommandPaletteTrigger } from "@/components/shared/command-palette-trigger";
@@ -13,9 +14,10 @@ import { getSessionPreferences } from "@/lib/session-preferences";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { userId, user } = await requirePageUser();
-  const [{ locale }, t, categories, accounts, merchantRules] = await Promise.all([
+  const [{ locale }, t, tQuickAdd, categories, accounts, merchantRules] = await Promise.all([
     getSessionPreferences(),
     getTranslations("commandPalette"),
+    getTranslations("shell.quickAdd"),
     listCategories(userId, { kind: "expense" }),
     listAccounts(userId),
     listMerchantRules(userId),
@@ -29,6 +31,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <header className="border-border/60 bg-background/80 sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-4 backdrop-blur">
             <SidebarTrigger />
             <CommandPaletteTrigger label={t("trigger")} />
+            <AddExpenseButton label={tQuickAdd("trigger")} />
             <div className="ml-auto flex items-center gap-2">
               <UserMenu
                 name={user.name ?? null}
