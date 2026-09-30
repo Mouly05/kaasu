@@ -50,8 +50,10 @@ src/
     statements/  investments/  dashboard/  advisor/  assistant/  settings/
       components/  actions.ts  queries.ts  schema.ts  service.ts  *.test.ts
   lib/
-    db/  (connection.ts, models/)   money.ts   dates.ts   crypto.ts
-    env.ts  auth.ts  ai/  telegram/  indstocks/  utils.ts
+    db/  (connection.ts, models/)   money.ts   dates.ts   crypto.ts   locales.ts
+    env.ts  env-schema.ts  auth.ts  auth/ (config, access, allowlist, actions)
+    auth-helpers.ts  action-result.ts  errors.ts  rate-limit/  security-headers.ts
+    ai/  telegram/  indstocks/  utils.ts
   components/ui/          # shadcn primitives
   components/shared/      # app-wide composites (AmountInput, CategoryPicker, EmptyState…)
   messages/  en.json  ta.json
@@ -67,6 +69,21 @@ Business logic lives in `service.ts` as pure functions where possible (easy to u
 - Every list screen has: loading skeleton, empty state with a clear call to action, error state.
 - Dates displayed like `30 Sep`, `Wed, 30 Sep 2026`. Amounts like `₹1,23,456`.
 - Commits: Conventional Commits (`feat(expenses): quick add`). One module = one or more small commits.
+
+### Auth & security patterns (Module 2)
+- **Pages/layouts:** `const { userId } = await requirePageUser()` (redirects to /login). The proxy is only the first gate.
+- **Server actions:** wrap in `withAction(...)`, start with `const { userId } = await requireUser()`, validate input with Zod, return `ok(data)` / `fail({ code, message })` from `@/lib/action-result`.
+- **Route handlers:** wrap in `withRoute(...)` (UnauthorizedError → 401, RateLimitError → 429, else 500 with details hidden). Cron/Telegram routes re-check their secret with `isCronAuthorized` / `isTelegramAuthorized`.
+- **Expensive routes (AI, uploads):** `await rateLimits.ai.enforce(userId)` / `rateLimits.upload` after `requireUser()`.
+- **Third-party tokens:** store only `encrypt(token)` from `@/lib/crypto`; `decrypt` at use time; never log either.
+- **New external origin** (images, scripts, APIs): add it explicitly in `src/lib/security-headers.ts` (CSP) and, for images, `next.config.ts` `images.remotePatterns`.
+- **New public route:** add it to `decideAccess` in `src/lib/auth/access.ts` with a test. Everything else is private by default.
+- **New env var:** add to `env-schema.ts` (Zod), `.env.example` (with how to generate), and a test in `env-schema.test.ts`.
+
+### Next 16 & testing gotchas
+- This is Next 16: read `node_modules/next/dist/docs/` before using an API from memory (`proxy.ts` not `middleware.ts`, async `params`/`searchParams`, typed `PageProps<"/route">` / `LayoutProps`).
+- Server-side tests start with `// @vitest-environment node`; `server-only` is stubbed in Vitest. Keep logic in pure modules (e.g. `access.ts`, `rate-limit/core.ts`) so it is testable without Next, Auth.js or Mongo.
+- If `pnpm typecheck` complains about a deleted route in `.next/dev/types`, delete that folder (stale dev types).
 
 ## 6. Design language
 Modern, calm, sleek. Neutral zinc base, one accent (emerald for money-in / positive), rose for
