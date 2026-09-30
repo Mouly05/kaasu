@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
+import type { MerchantRuleSummary } from "@/features/expenses/queries";
 import type { AccountSummary, CategorySummary } from "@/features/settings/queries";
 
 import { CommandPalette } from "./command-palette";
@@ -25,10 +26,16 @@ export interface ShellShortcutsProps {
   children: ReactNode;
   categories: CategorySummary[];
   accounts: AccountSummary[];
+  merchantRules: MerchantRuleSummary[];
 }
 
 /** Owns Quick Add / Command Palette open state and the ⌘K / ⌘N global shortcuts. */
-export function ShellShortcuts({ children, categories, accounts }: ShellShortcutsProps) {
+export function ShellShortcuts({
+  children,
+  categories,
+  accounts,
+  merchantRules,
+}: ShellShortcutsProps) {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
 
@@ -64,6 +71,7 @@ export function ShellShortcuts({ children, categories, accounts }: ShellShortcut
         onOpenChange={setQuickAddOpen}
         categories={categories}
         accounts={accounts}
+        merchantRules={merchantRules}
       />
       <CommandPalette
         open={commandOpen}

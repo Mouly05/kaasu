@@ -21,121 +21,249 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { submitQuickAdd } from "@/features/expenses/actions";
+import { deleteTransaction, submitQuickAdd } from "@/features/expenses/actions";
+import type { MerchantRuleSummary } from "@/features/expenses/queries";
+import { submitIncome } from "@/features/salary/actions";
 import type { AccountSummary, CategorySummary } from "@/features/settings/queries";
+import { useLocalStorageValue, writeLocalStorageValue } from "@/hooks/use-local-storage-value";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { todayIST } from "@/lib/dates";
+import type { IncomeSource } from "@/lib/db/models/income";
 
-import { AccountPicker } from "./account-picker";
 import { AmountInput } from "./amount-input";
-import { CategoryPicker } from "./category-picker";
 import { DatePickerIST } from "./date-picker-ist";
+import { IncomeSourcePicker } from "./income-source-picker";
+import { QuickAddStructuredForm, type ExpenseFormValue } from "./quick-add-structured-form";
+import { QuickAddTextBox, type QuickAddParsedValue } from "./quick-add-textbox";
 
 export interface QuickAddSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   categories: CategorySummary[];
   accounts: AccountSummary[];
+  merchantRules: MerchantRuleSummary[];
 }
 
-function emptyForm() {
+type Mode = "smart" | "structured" | "income";
+
+const LAST_CATEGORY_KEY = "kaasu:quickAdd:lastCategoryId";
+const LAST_ACCOUNT_KEY = "kaasu:quickAdd:lastAccountId";
+
+function emptyExpenseForm(accountId: string | null): ExpenseFormValue {
   return {
-    amountPaise: null as number | null,
-    categoryId: null as string | null,
-    accountId: null as string | null,
+    amountPaise: null,
+    categoryId: null,
+    accountId,
+    merchant: "",
     note: "",
     date: todayIST(),
+    tags: [],
   };
 }
 
-export function QuickAddSheet({ open, onOpenChange, categories, accounts }: QuickAddSheetProps) {
+interface IncomeFormValue {
+  amountPaise: number | null;
+  source: IncomeSource;
+  note: string;
+  date: Date;
+}
+
+function emptyIncomeForm(): IncomeFormValue {
+  return { amountPaise: null, source: "salary", note: "", date: todayIST() };
+}
+
+export function QuickAddSheet({
+  open,
+  onOpenChange,
+  categories,
+  accounts,
+  merchantRules,
+}: QuickAddSheetProps) {
   const t = useTranslations("shell.quickAdd");
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const [form, setForm] = useState(emptyForm);
+  const lastCategoryId = useLocalStorageValue(LAST_CATEGORY_KEY);
+  const lastAccountId = useLocalStorageValue(LAST_ACCOUNT_KEY);
+
+  const [mode, setMode] = useState<Mode>("smart");
+  const [expenseForm, setExpenseForm] = useState<ExpenseFormValue>(() =>
+    emptyExpenseForm(lastAccountId ?? accounts[0]?.id ?? null),
+  );
+  const [incomeForm, setIncomeForm] = useState<IncomeFormValue>(emptyIncomeForm);
   const [pending, setPending] = useState(false);
 
   function handleOpenChange(next: boolean) {
     onOpenChange(next);
-    if (!next) setForm(emptyForm());
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!form.amountPaise || !form.accountId) return;
-    setPending(true);
-    const result = await submitQuickAdd({
-      amountPaise: form.amountPaise,
-      direction: "debit",
-      categoryId: form.categoryId ?? undefined,
-      accountId: form.accountId,
-      note: form.note || undefined,
-      date: form.date,
-      source: "manual",
-    });
-    setPending(false);
-    if (result.ok) {
-      toast.success(t("comingSoon"));
-      handleOpenChange(false);
-    } else {
-      toast.error(result.error.message);
+    if (!next) {
+      setMode("smart");
+      setExpenseForm(emptyExpenseForm(lastAccountId ?? accounts[0]?.id ?? null));
+      setIncomeForm(emptyIncomeForm());
     }
   }
 
+  async function submitExpense() {
+    if (!expenseForm.amountPaise || !expenseForm.accountId) return;
+    setPending(true);
+    const result = await submitQuickAdd({
+      amountPaise: expenseForm.amountPaise,
+      direction: "debit",
+      categoryId: expenseForm.categoryId ?? undefined,
+      accountId: expenseForm.accountId,
+      merchant: expenseForm.merchant || undefined,
+      note: expenseForm.note || undefined,
+      date: expenseForm.date,
+      tags: expenseForm.tags,
+      source: "manual",
+    });
+    setPending(false);
+    if (!result.ok) {
+      toast.error(result.error.message);
+      return;
+    }
+
+    if (expenseForm.categoryId) writeLocalStorageValue(LAST_CATEGORY_KEY, expenseForm.categoryId);
+    if (expenseForm.accountId) writeLocalStorageValue(LAST_ACCOUNT_KEY, expenseForm.accountId);
+
+    const { id } = result.data;
+    toast.success(t("saved"), {
+      duration: 5000,
+      action: { label: t("undo"), onClick: () => void deleteTransaction({ id }) },
+    });
+    handleOpenChange(false);
+  }
+
+  async function submitIncomeEntry() {
+    if (!incomeForm.amountPaise) return;
+    setPending(true);
+    const result = await submitIncome({
+      amountPaise: incomeForm.amountPaise,
+      source: incomeForm.source,
+      note: incomeForm.note || undefined,
+      date: incomeForm.date,
+    });
+    setPending(false);
+    if (!result.ok) {
+      toast.error(result.error.message);
+      return;
+    }
+    toast.success(t("incomeSaved"));
+    handleOpenChange(false);
+  }
+
+  function handleExpenseSubmit(event: FormEvent) {
+    event.preventDefault();
+    void submitExpense();
+  }
+
+  function handleIncomeSubmit(event: FormEvent) {
+    event.preventDefault();
+    void submitIncomeEntry();
+  }
+
+  const smartValue: QuickAddParsedValue = {
+    amountPaise: expenseForm.amountPaise,
+    categoryId: expenseForm.categoryId,
+    accountId: expenseForm.accountId,
+    date: expenseForm.date,
+    merchant: expenseForm.merchant || null,
+  };
+
+  const structuredFormId = "quick-add-structured-form";
+  const incomeFormId = "quick-add-income-form";
+  const canSaveExpense = !!expenseForm.amountPaise && !!expenseForm.accountId;
+  const canSaveIncome = !!incomeForm.amountPaise;
+
   const body = (
-    <form
-      id="quick-add-form"
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-4 px-4 pb-4 sm:px-0"
-    >
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium" htmlFor="quick-add-amount">
-          {t("amount")}
-        </label>
-        <AmountInput
-          id="quick-add-amount"
-          value={form.amountPaise}
-          onChangePaise={(paise) => setForm((f) => ({ ...f, amountPaise: paise }))}
-          aria-label={t("amount")}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <span className="text-sm font-medium">{t("category")}</span>
-        <CategoryPicker
+    <div className="flex flex-col gap-4 px-4 pb-4 sm:px-0">
+      <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="smart">{t("modes.smart")}</TabsTrigger>
+          <TabsTrigger value="structured">{t("modes.structured")}</TabsTrigger>
+          <TabsTrigger value="income">{t("modes.income")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {mode === "smart" && (
+        <QuickAddTextBox
           categories={categories}
-          value={form.categoryId}
-          onChange={(categoryId) => setForm((f) => ({ ...f, categoryId }))}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <span className="text-sm font-medium">{t("account")}</span>
-        <AccountPicker
           accounts={accounts}
-          value={form.accountId}
-          onChange={(accountId) => setForm((f) => ({ ...f, accountId }))}
+          merchantRules={merchantRules}
+          lastUsedCategoryId={lastCategoryId}
+          lastUsedAccountId={lastAccountId}
+          value={smartValue}
+          onChange={(next) =>
+            setExpenseForm((form) => ({
+              ...form,
+              amountPaise: next.amountPaise,
+              categoryId: next.categoryId,
+              accountId: next.accountId,
+              date: next.date,
+              merchant: next.merchant ?? "",
+            }))
+          }
+          onSubmit={() => void submitExpense()}
         />
-      </div>
-      <div className="space-y-1.5">
-        <span className="text-sm font-medium">{t("date")}</span>
-        <DatePickerIST
-          value={form.date}
-          onChange={(date) => setForm((f) => ({ ...f, date }))}
-          aria-label={t("date")}
+      )}
+
+      {mode === "structured" && (
+        <QuickAddStructuredForm
+          formId={structuredFormId}
+          value={expenseForm}
+          onChange={setExpenseForm}
+          categories={categories}
+          accounts={accounts}
+          onSubmit={handleExpenseSubmit}
         />
-      </div>
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium" htmlFor="quick-add-note">
-          {t("note")}
-        </label>
-        <Textarea
-          id="quick-add-note"
-          value={form.note}
-          onChange={(event) => setForm((f) => ({ ...f, note: event.target.value }))}
-          rows={2}
-        />
-      </div>
-    </form>
+      )}
+
+      {mode === "income" && (
+        <form id={incomeFormId} onSubmit={handleIncomeSubmit} className="flex flex-col gap-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="quick-add-income-amount">
+              {t("amount")}
+            </label>
+            <AmountInput
+              id="quick-add-income-amount"
+              value={incomeForm.amountPaise}
+              onChangePaise={(paise) => setIncomeForm((form) => ({ ...form, amountPaise: paise }))}
+              aria-label={t("amount")}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium">{t("income.source")}</span>
+            <IncomeSourcePicker
+              value={incomeForm.source}
+              onChange={(source) => setIncomeForm((form) => ({ ...form, source }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium">{t("date")}</span>
+            <DatePickerIST
+              value={incomeForm.date}
+              onChange={(date) => setIncomeForm((form) => ({ ...form, date }))}
+              aria-label={t("date")}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="quick-add-income-note">
+              {t("note")}
+            </label>
+            <Textarea
+              id="quick-add-income-note"
+              value={incomeForm.note}
+              onChange={(event) => setIncomeForm((form) => ({ ...form, note: event.target.value }))}
+              rows={2}
+            />
+          </div>
+        </form>
+      )}
+    </div>
   );
+
+  const activeFormId =
+    mode === "structured" ? structuredFormId : mode === "income" ? incomeFormId : undefined;
+  const canSave = mode === "income" ? canSaveIncome : canSaveExpense;
 
   const footer = (
     <>
@@ -143,9 +271,10 @@ export function QuickAddSheet({ open, onOpenChange, categories, accounts }: Quic
         {t("cancel")}
       </Button>
       <Button
-        type="submit"
-        form="quick-add-form"
-        disabled={pending || !form.amountPaise || !form.accountId}
+        type={activeFormId ? "submit" : "button"}
+        form={activeFormId}
+        onClick={activeFormId ? undefined : () => void submitExpense()}
+        disabled={pending || !canSave}
       >
         {t("save")}
       </Button>

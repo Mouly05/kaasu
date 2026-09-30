@@ -7,11 +7,11 @@ import "server-only";
 
 import NextAuth from "next-auth";
 
-// A deliberate lib → features import: category-seed ownership lives in
-// settings/service.ts (Zod schema for Category lives there too), and this is
-// the only hook that fires once per real sign-in rather than every token
+// A deliberate lib → features import: category/account-seed ownership lives
+// in settings/service.ts (the Zod schemas for both live there too), and this
+// is the only hook that fires once per real sign-in rather than every token
 // refresh.
-import { ensureDefaultCategories } from "@/features/settings/service";
+import { ensureDefaultAccounts, ensureDefaultCategories } from "@/features/settings/service";
 
 import { authConfig } from "./auth/config";
 import { upsertUserOnSignIn } from "./auth/upsert-user";
@@ -32,6 +32,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Never let a bootstrap failure block sign-in.
         await ensureDefaultCategories(userId).catch((error: unknown) => {
           console.error("[auth] failed to bootstrap default categories", error);
+        });
+        await ensureDefaultAccounts(userId).catch((error: unknown) => {
+          console.error("[auth] failed to bootstrap default accounts", error);
         });
       }
       return token;

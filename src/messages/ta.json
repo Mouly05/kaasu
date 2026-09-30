@@ -34,11 +34,33 @@
       "amount": "தொகை",
       "category": "வகை",
       "account": "கணக்கு",
+      "merchant": "வணிகர்",
       "note": "குறிப்பு",
       "date": "தேதி",
+      "tags": "குறிச்சொற்கள்",
+      "tagsPlaceholder": "குறிச்சொல் சேர்…",
       "save": "சேமி",
       "cancel": "ரத்துசெய்",
-      "comingSoon": "செலவு பதிவு அடுத்த மாதிரியில் வரும்."
+      "saved": "செலவு சேர்க்கப்பட்டது",
+      "undo": "செயல்தவிர்",
+      "incomeSaved": "வருமானம் பதிவு செய்யப்பட்டது",
+      "smartPlaceholder": "உணவு 120 swiggy",
+      "modes": {
+        "smart": "ஸ்மார்ட் உரை",
+        "structured": "கட்டமைக்கப்பட்டது",
+        "income": "வருமானம்"
+      },
+      "chips": {
+        "amount": "தொகை",
+        "category": "வகை",
+        "account": "கணக்கு"
+      },
+      "income": {
+        "source": "மூலம்",
+        "salary": "சம்பளம்",
+        "reimbursement": "திருப்பிச் செலுத்துதல்",
+        "other": "மற்றவை"
+      }
     },
     "home": {
       "greeting": "வணக்கம்",
@@ -94,6 +116,61 @@
     "accountPicker": {
       "search": "கணக்குகளைத் தேடு…",
       "empty": "கணக்குகள் எதுவும் இல்லை."
+    }
+  },
+  "expenses": {
+    "title": "செலவுகள்",
+    "description": "ஒவ்வொரு செலவும், நாள் வாரியாக தொகுக்கப்பட்டது.",
+    "export": "CSV ஏற்றுமதி",
+    "safeToSpend": {
+      "status": {
+        "on_track": "சரியான பாதையில்",
+        "tight": "இறுக்கமாக",
+        "over": "பட்ஜெட்டை மீறியது"
+      },
+      "perDay": "இன்று செலவழிக்கலாம்",
+      "noIncomeHint": "உண்மையான எண்ணிக்கைக்கு அமைப்புகளில் உங்கள் சம்பளத்தை அமைக்கவும்.",
+      "spentToday": "இன்று செலவழிக்கப்பட்டது",
+      "thisWeek": "இந்த வாரம்",
+      "weekHigher": "முந்தைய மாதத்தின் அதே வாரத்தை விட {amount} அதிகம்",
+      "weekLower": "முந்தைய மாதத்தின் அதே வாரத்தை விட {amount} குறைவு"
+    },
+    "guidance": {
+      "title": "தினசரி வழிகாட்டுதல்"
+    },
+    "filters": {
+      "category": "வகை",
+      "account": "கணக்கு",
+      "source": "மூலம்",
+      "search": "வணிகர் அல்லது குறிப்பைத் தேடு…",
+      "allCategories": "அனைத்து வகைகளும்",
+      "allAccounts": "அனைத்து கணக்குகளும்",
+      "allSources": "அனைத்து மூலங்களும்",
+      "sources": {
+        "manual": "கைமுறை",
+        "telegram": "டெலிகிராம்",
+        "statement": "அறிக்கை இறக்குமதி",
+        "recurring": "தொடர் செலவு",
+        "ai": "AI"
+      }
+    },
+    "list": {
+      "select": "தேர்ந்தெடு",
+      "edit": "திருத்து",
+      "delete": "நீக்கு",
+      "save": "சேமி",
+      "cancel": "ரத்துசெய்",
+      "deleteConfirmTitle": "இந்த செலவை நீக்கவா?",
+      "bulkDeleteConfirmTitle": "தேர்ந்தெடுக்கப்பட்ட செலவுகளை நீக்கவா?",
+      "selectedCount": "{count, plural, one {1 செலவு தேர்ந்தெடுக்கப்பட்டது} other {# செலவுகள் தேர்ந்தெடுக்கப்பட்டன}}",
+      "clearSelection": "தேர்வை அழி",
+      "uncategorised": "வகைப்படுத்தப்படாதது",
+      "unknownAccount": "கணக்கு",
+      "emptyTitle": "இதுவரை செலவுகள் இல்லை",
+      "emptyDescription": "நீங்கள் ஒன்றைச் சேர்த்தவுடன், அது இங்கே தோன்றும்.",
+      "loadingMore": "மேலும் ஏற்றுகிறது…",
+      "editTitle": "செலவைத் திருத்து",
+      "updated": "செலவு புதுப்பிக்கப்பட்டது"
     }
   },
   "styleguide": {

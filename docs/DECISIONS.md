@@ -111,7 +111,7 @@ Format: context → decision → consequences. Newest at the bottom. Never edit 
 ## ADR-017: Partial indexes, not `sparse`, for compound "optional field" indexes
 
 - **Date:** 2026-09-30 · **Status:** Accepted
-- **Context:** Verified live against Atlas (`pnpm seed:demo`): a plain `sparse` compound index only excludes a document when *every* indexed field is missing. Since `userId` is always present, `{userId, dedupeHash}` with `sparse: true` indexed every `Transaction` regardless of `dedupeHash`, so the unique constraint collided on the first two manual transactions (both indexed with an effective `dedupeHash: null`). Separately, the MongoDB driver's BSON serializer writes an unset field as an explicit `null` by default rather than omitting the key, which also defeats `$exists`-based exclusion unless disabled.
+- **Context:** Verified live against Atlas (`pnpm seed:demo`): a plain `sparse` compound index only excludes a document when _every_ indexed field is missing. Since `userId` is always present, `{userId, dedupeHash}` with `sparse: true` indexed every `Transaction` regardless of `dedupeHash`, so the unique constraint collided on the first two manual transactions (both indexed with an effective `dedupeHash: null`). Separately, the MongoDB driver's BSON serializer writes an unset field as an explicit `null` by default rather than omitting the key, which also defeats `$exists`-based exclusion unless disabled.
 - **Decision:** `src/lib/db/connection.ts` passes `ignoreUndefined: true` to `mongoose.connect`, so a field that was never set is genuinely absent from the stored document instead of `null`. Every compound index over an optional field (`Transaction.dedupeHash`/`recurringId`/`debtId`/`goalId`, `Debt.dueDate`, `Emi.recurringId`, `Insight.dismissedAt`) uses `partialFilterExpression: { <field>: { $exists: true } }` instead of `sparse: true`.
 - **Consequences:** Both changes are required together — `ignoreUndefined` without the partial filter still indexes explicit `null`s (if some other write path set one); the partial filter without `ignoreUndefined` still includes docs whose field was serialized to `null`. Any future compound index over an optional field must follow the same pattern, not plain `sparse`.
 
@@ -135,3 +135,92 @@ Format: context → decision → consequences. Newest at the bottom. Never edit 
 - **Context:** Every primitive in `components/ui/` up to this point was generated via the shadcn CLI (`radix-nova` style, zinc tokens), and the `--sidebar-*` CSS variables already existed in `globals.css` from the initial `shadcn init`, unused until now.
 - **Decision:** Ran `pnpm dlx shadcn@latest add sidebar`, which generated `src/components/ui/sidebar.tsx` and `src/hooks/use-mobile.ts` on top of already-installed primitives (`sheet`, `separator`, `tooltip`) — no new npm dependency. `src/components/shared/app-sidebar.tsx` thin-wraps it with the app's own nav list, active-route highlighting, and emerald accent color, following the same `components/ui` (generated) vs `components/shared` (app-specific) split as every other primitive.
 - **Consequences:** Desktop collapse, mobile Sheet fallback, `Cmd/Ctrl+B` toggle, and cookie-persisted collapsed state all come for free. `src/hooks/use-mobile.ts`'s generated `useIsMobile` was rewritten to delegate to `src/hooks/use-media-query.ts` (a `useSyncExternalStore`-based hook already needed for the Quick Add drawer/dialog breakpoint) instead of its original `setState`-inside-`useEffect` body, to satisfy the repo's `react-hooks/set-state-in-effect` lint rule without changing behavior.
+
+## ADR-021: Income entries write to `Income`, never `Transaction`
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Quick Add's Income mode needs somewhere to log salary/reimbursement/other. `Income` already exists as its own collection (Module 3), with no `categoryId`/`accountId`/`tags` — a different shape from `Transaction`.
+- **Decision:** `features/salary/actions.ts::submitIncome` writes to `Income` only. Income never appears in the `/expenses` list, its filters, or CSV export (confirmed with the product owner) — a dedicated income view is a later module's job.
+- **Consequences:** `getSafeToSpendData`'s no-plan "expected income" falls back to this month's logged `Income` sum when no salary range is set, so logging income here still feeds the safe-to-spend number even though it's invisible on `/expenses` itself.
+
+## ADR-022: No-plan "fixed recurring items" = active, monthly-frequency `Recurring` only
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** The no-plan safe-to-spend fallback needs a "fixed recurring items" figure. `Recurring.frequency` can be `monthly | weekly | yearly | custom`; prorating weekly/yearly amounts into a monthly figure is a real design question the brief didn't specify.
+- **Decision:** Only `isActive: true, frequency: "monthly"` items count, and only those with no `Transaction` yet this IST month carrying their `recurringId` (so a recurring item already paid and logged isn't double-subtracted from both "fixed" and "variable spend"). Weekly/yearly/custom recurring items are excluded from this formula for now.
+- **Consequences:** Once Module 6 (Recurring) ships an "upcoming this month" query that handles prorating properly, this module's fallback formula should switch to call it instead of re-deriving its own subset here.
+
+## ADR-023: Safe-to-spend status uses a fixed 0.2 "tight" ratio threshold
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Decision:** Both `computeSafeToSpendNoPlan` and `computeSafeToSpendWithPlan` (`features/expenses/safe-to-spend.ts`) derive status as: 🔴 `over` iff the raw remaining amount is ≤ 0; 🟡 `tight` iff `0 < raw/basis < 0.2` (basis = expected income, no-plan; planned discretionary budget, plan-based); 🟢 `on_track` otherwise. The threshold is a module-level constant, not user-configurable.
+- **Consequences:** Simple, deterministic, fully unit-tested. Revisit if user feedback (once there are real users) suggests the threshold should be a Settings preference.
+
+## ADR-024: Week-over-week comparison is a rolling trailing-7-day window, not calendar weeks
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** "This week vs same week last month" needs a week boundary. Calendar weeks (e.g. ISO weeks, or locale-dependent Sunday/Monday starts) add complexity `src/lib/dates.ts` didn't already have an opinion on.
+- **Decision:** New `trailingWeekRangeIST(date)` helper returns the 7 IST calendar days ending on `date`, inclusive. "Same week last month" is the same window shifted back exactly 28 days — no month-boundary-aware logic.
+- **Consequences:** Always compares like-for-like day-of-week distance (e.g. "the last 7 days" vs "the 7 days starting 4 weeks before that"), never a real calendar month's worth of drift. No new `MonthSwitcher`-style UI needed for this comparison.
+
+## ADR-025: `MerchantRule` upserts on every save with a merchant + category, not only on a detected correction
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** "When the user corrects a category for a merchant, upsert a MerchantRule" could mean tracking client-side whether the category differs from what the parser guessed, versus a simpler unconditional upsert.
+- **Decision:** `submitQuickAdd`/`updateTransaction` upsert a `MerchantRule` any time both `merchant` and `categoryId` are present on the save — no client-side "was this a correction" state. `nextRuleState` (`features/expenses/merchant-rules.ts`) reinforces confidence when the category matches what's already learned, and resets it when it doesn't.
+- **Consequences:** Zero extra state to plumb through the Quick Add UI; the rule self-corrects over a few uses either way. A single accidental wrong pick lowers confidence via the next correct save rather than requiring an explicit "teach" action.
+
+## ADR-026: `MerchantRule` matching stays case-insensitive exact-string for this module
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** ADR-014 already scoped `pattern` to a safe literal-with-wildcard string, with the actual wildcard-matching engine deferred to a later statements-import module.
+- **Decision:** `matchMerchantRule` (`features/expenses/merchant-rules.ts`) matches the whole normalised phrase first, then each individual token — plain equality, no wildcard expansion. The demo seed's existing `"swiggy*"`-style rows are exercised by the future engine, not this one.
+- **Consequences:** A learned rule from Quick Add matches only when the merchant text is later typed identically (case/whitespace aside). Acceptable for a first version; upgrading to wildcard matching later is additive.
+
+## ADR-027: Quick Add's Undo is commit-then-delete, not a staged commit
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** A 5s Undo window could either delay the actual database write until the window closes, or write immediately and let Undo reverse it.
+- **Decision:** `submitQuickAdd` writes immediately; the success toast's Undo action calls `deleteTransaction` with the new id.
+- **Consequences:** Never loses data to a closed tab mid-window. The cost is one throwaway document if the user does hit Undo — negligible, and simpler than resumable staged state.
+
+## ADR-028: Expenses list pagination is cursor-based on `(date, _id)` desc; search mode drops the cursor
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** `skip`/`limit` pagination is unstable under concurrent inserts (a new Quick Add entry while scrolling shifts every subsequent page by one). `$text` search relevance ordering (`$meta: "textScore"`) doesn't compose with a `(date, _id)` cursor.
+- **Decision:** `listTransactionsPage` (`features/expenses/queries.ts`) paginates non-search requests with `{$or: [{date: {$lt: cursorDate}}, {date: cursorDate, _id: {$lt: cursorId}}]}`, sorted `{date: -1, _id: -1}`. A `search` filter instead returns one relevance-ranked, capped page with `nextCursor: null`.
+- **Consequences:** Search results beyond the first page aren't reachable via scroll — acceptable, since search narrows the result set enough in practice; revisit if that stops being true.
+
+## ADR-029: CSV export is a `GET` route handler, not a server action
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** `ActionResult`'s `{ok, data} | {ok, error}` JSON shape (CLAUDE.md §5) doesn't fit a file download — the browser needs to drive the download natively via a real HTTP response.
+- **Decision:** `GET /expenses/export` (`src/app/(app)/expenses/export/route.ts`), wrapped in `withRoute`, re-checks `requireUser()`, returns `Content-Type: text/csv` + `Content-Disposition: attachment`. It isn't listed in `decideAccess`'s public routes — `src/proxy.ts` treats any non-`/api` path as a page requiring authentication (redirect, not 401 JSON), same as every other page.
+- **Consequences:** One deliberate exception to "server actions return `ActionResult`" — files are the documented case where a route handler is the right tool instead.
+
+## ADR-030: `DEFAULT_ACCOUNTS` seeded via the same `jwt`-callback pattern as `DEFAULT_CATEGORIES`
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Decision:** `ensureDefaultAccounts` (`features/settings/service.ts`) mirrors `ensureDefaultCategories`'s idempotent per-item `bulkWrite`/`$setOnInsert`/`upsert` exactly, seeding Cash + UPI, called from `src/lib/auth.ts`'s `jwt` callback right next to `ensureDefaultCategories`, same non-blocking `.catch(console.error)`.
+- **Consequences:** `listAccounts(userId)` is never empty by the time the app shell renders, so Quick Add never needs a lazy create-on-first-submit fallback. Verified idempotent against the real Atlas cluster (calling it twice produced exactly one Cash and one UPI account).
+
+## ADR-031: `parseRelativeDateToken` lives in `lib/dates.ts`; a year-less `dd-mm` always uses the current IST year
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Quick Add's parser needs to read "today"/"yesterday"/`dd-mm`/`dd-mm-yyyy` tokens. This is generic date parsing, not expense-specific.
+- **Decision:** The token parser lives in `src/lib/dates.ts` alongside the other IST helpers, not in `features/expenses/`. A `dd-mm` with no year always resolves to the current IST year — including when that date is still in the future this year (e.g. parsing "31-12" in September) — no heuristic tries to guess whether the user meant last year instead.
+- **Consequences:** Simple and predictable. A user backdating an expense to a genuinely different year must type the year explicitly (`dd-mm-yyyy`).
+
+## ADR-032: Quick Add's own building blocks stay in `components/shared/`; the Expenses list page's UI lives in `features/expenses/components/`
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Module 4 already placed `QuickAddSheet` (and the pickers it uses) in `components/shared/`, wired directly into the app shell. The Expenses list page is new in this module and has no such precedent.
+- **Decision:** New Quick Add pieces (`quick-add-textbox.tsx`, `quick-add-structured-form.tsx`, `tag-input.tsx`, `income-source-picker.tsx`, `swipeable-row.tsx`) extend the existing `components/shared/` set rather than moving `QuickAddSheet` into a feature folder, minimizing churn to Module 4's shell wiring. The Expenses list's own UI (day grouping, filters bar, bulk action bar, safe-to-spend/guidance cards, the edit dialog) lives in `features/expenses/components/`, per CLAUDE.md's folder convention for feature-specific screens.
+- **Consequences:** `swipeable-row.tsx` is generic enough (no expenses-specific logic) that a later module can reuse it directly from `components/shared/`.
+
+## ADR-033: Safe-to-spend/guidance cards live only on `/expenses`; a brand-new user sees ₹0/day with a hint, not an empty state
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Three open product questions from the Module 5 plan, resolved directly with the product owner rather than picked unilaterally.
+- **Decision:** (1) The "Safe to spend today" hero and Daily guidance card render at the top of `/expenses` only — Home keeps its Module-4 "dashboard coming later" placeholder untouched. (2) For a brand-new user with no salary configured and no income logged, the hero card still renders (🔴, ₹0/day, "Set your salary in Settings for a real number") rather than an empty state, so the guidance card stays visible from day one.
+- **Consequences:** Both are easy to revisit later (e.g. once Module 13 builds the real Dashboard, or if new-user feedback prefers a softer empty state) without a data-model change — purely presentational calls.

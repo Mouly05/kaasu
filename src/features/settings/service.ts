@@ -3,6 +3,8 @@ import "server-only";
 import { Types } from "mongoose";
 
 import { connectDb } from "@/lib/db/connection";
+import { Account } from "@/lib/db/models/account";
+import type { AccountType } from "@/lib/db/models/account";
 import { Category } from "@/lib/db/models/category";
 import type { CategoryGroup, CategoryKind } from "@/lib/db/models/category";
 
@@ -23,7 +25,14 @@ export interface DefaultCategorySeed {
  * bootstrap below and `scripts/seed-demo.ts`.
  */
 export const DEFAULT_CATEGORIES: readonly DefaultCategorySeed[] = [
-  { name: "Rent", nameTa: "வாடகை", icon: "Home", color: "#f97316", kind: "expense", group: "needs" },
+  {
+    name: "Rent",
+    nameTa: "வாடகை",
+    icon: "Home",
+    color: "#f97316",
+    kind: "expense",
+    group: "needs",
+  },
   {
     name: "Food & Groceries",
     nameTa: "உணவு மற்றும் மளிகை",
@@ -48,7 +57,14 @@ export const DEFAULT_CATEGORIES: readonly DefaultCategorySeed[] = [
     kind: "expense",
     group: "needs",
   },
-  { name: "Travel", nameTa: "பயணம்", icon: "Plane", color: "#06b6d4", kind: "expense", group: "wants" },
+  {
+    name: "Travel",
+    nameTa: "பயணம்",
+    icon: "Plane",
+    color: "#06b6d4",
+    kind: "expense",
+    group: "wants",
+  },
   {
     name: "Subscriptions",
     nameTa: "சந்தாக்கள்",
@@ -97,7 +113,14 @@ export const DEFAULT_CATEGORIES: readonly DefaultCategorySeed[] = [
     kind: "expense",
     group: "wants",
   },
-  { name: "Gold", nameTa: "தங்கம்", icon: "Gem", color: "#ca8a04", kind: "expense", group: "savings" },
+  {
+    name: "Gold",
+    nameTa: "தங்கம்",
+    icon: "Gem",
+    color: "#ca8a04",
+    kind: "expense",
+    group: "savings",
+  },
   {
     name: "Investments/SIP",
     nameTa: "முதலீடு/SIP",
@@ -106,7 +129,14 @@ export const DEFAULT_CATEGORIES: readonly DefaultCategorySeed[] = [
     kind: "expense",
     group: "savings",
   },
-  { name: "EMI", nameTa: "தவணை", icon: "CreditCard", color: "#6366f1", kind: "expense", group: "debt" },
+  {
+    name: "EMI",
+    nameTa: "தவணை",
+    icon: "CreditCard",
+    color: "#6366f1",
+    kind: "expense",
+    group: "debt",
+  },
   {
     name: "Debt Repayment",
     nameTa: "கடன் திருப்பிச் செலுத்துதல்",
@@ -144,6 +174,42 @@ export async function ensureDefaultCategories(userId: string): Promise<void> {
             userId: new Types.ObjectId(userId),
             isSystem: true,
             sortOrder: index,
+          },
+        },
+        upsert: true,
+      },
+    })),
+    { ordered: false },
+  );
+}
+
+export interface DefaultAccountSeed {
+  name: string;
+  type: AccountType;
+}
+
+/** So Quick Add always has somewhere to log an expense, even for a brand-new user. */
+export const DEFAULT_ACCOUNTS: readonly DefaultAccountSeed[] = [
+  { name: "Cash", type: "cash" },
+  { name: "UPI", type: "upi" },
+];
+
+/**
+ * Idempotent per-account upsert, the same pattern as `ensureDefaultCategories`.
+ * Called from the auth `jwt` callback on real sign-in.
+ */
+export async function ensureDefaultAccounts(userId: string): Promise<void> {
+  await connectDb();
+  await Account.bulkWrite(
+    DEFAULT_ACCOUNTS.map((account) => ({
+      updateOne: {
+        filter: { userId, name: account.name },
+        update: {
+          $setOnInsert: {
+            ...account,
+            userId: new Types.ObjectId(userId),
+            openingBalancePaise: 0,
+            isArchived: false,
           },
         },
         upsert: true,

@@ -34,11 +34,33 @@
       "amount": "Amount",
       "category": "Category",
       "account": "Account",
+      "merchant": "Merchant",
       "note": "Note",
       "date": "Date",
+      "tags": "Tags",
+      "tagsPlaceholder": "Add a tag…",
       "save": "Save",
       "cancel": "Cancel",
-      "comingSoon": "Expense logging arrives in the next module."
+      "saved": "Expense added",
+      "undo": "Undo",
+      "incomeSaved": "Income logged",
+      "smartPlaceholder": "food 120 swiggy",
+      "modes": {
+        "smart": "Smart text",
+        "structured": "Structured",
+        "income": "Income"
+      },
+      "chips": {
+        "amount": "Amount",
+        "category": "Category",
+        "account": "Account"
+      },
+      "income": {
+        "source": "Source",
+        "salary": "Salary",
+        "reimbursement": "Reimbursement",
+        "other": "Other"
+      }
     },
     "home": {
       "greeting": "Hello",
@@ -94,6 +116,61 @@
     "accountPicker": {
       "search": "Search accounts…",
       "empty": "No accounts found."
+    }
+  },
+  "expenses": {
+    "title": "Expenses",
+    "description": "Every spend, grouped by day.",
+    "export": "Export CSV",
+    "safeToSpend": {
+      "status": {
+        "on_track": "On track",
+        "tight": "Tight",
+        "over": "Over budget"
+      },
+      "perDay": "safe to spend today",
+      "noIncomeHint": "Set your salary in Settings for a real number.",
+      "spentToday": "Spent today",
+      "thisWeek": "This week",
+      "weekHigher": "{amount} higher than the same week last month",
+      "weekLower": "{amount} lower than the same week last month"
+    },
+    "guidance": {
+      "title": "Daily guidance"
+    },
+    "filters": {
+      "category": "Category",
+      "account": "Account",
+      "source": "Source",
+      "search": "Search merchant or note…",
+      "allCategories": "All categories",
+      "allAccounts": "All accounts",
+      "allSources": "All sources",
+      "sources": {
+        "manual": "Manual",
+        "telegram": "Telegram",
+        "statement": "Statement import",
+        "recurring": "Recurring",
+        "ai": "AI"
+      }
+    },
+    "list": {
+      "select": "Select",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "deleteConfirmTitle": "Delete this expense?",
+      "bulkDeleteConfirmTitle": "Delete the selected expenses?",
+      "selectedCount": "{count, plural, one {1 expense selected} other {# expenses selected}}",
+      "clearSelection": "Clear selection",
+      "uncategorised": "Uncategorised",
+      "unknownAccount": "Account",
+      "emptyTitle": "No expenses yet",
+      "emptyDescription": "Once you add one, it'll show up here.",
+      "loadingMore": "Loading more…",
+      "editTitle": "Edit expense",
+      "updated": "Expense updated"
     }
   },
   "styleguide": {

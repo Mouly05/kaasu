@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
   daysLeftInMonth,
+  endOfDayIST,
   endOfMonthIST,
   formatDay,
   formatMonthLabel,
   monthKey,
   parseMonthKey,
+  parseRelativeDateToken,
   shiftMonthKey,
   startOfMonthIST,
   todayIST,
+  trailingWeekRangeIST,
 } from "./dates";
 
 const utc = (iso: string) => new Date(iso);
@@ -132,5 +135,87 @@ describe("formatDay", () => {
     expect(formatDay(OCT_01_0000_IST)).toBe("1 Oct");
     expect(formatDay(SEP_30_2359_IST, "short")).toBe("30 Sep");
     expect(formatDay(utc("2026-09-30T06:00:00Z"), "long")).toBe("Wed, 30 Sep 2026");
+  });
+});
+
+describe("endOfDayIST", () => {
+  it("returns 23:59:59.999 IST on the same IST day", () => {
+    expect(endOfDayIST(SEP_30_2359_IST).toISOString()).toBe("2026-09-30T18:29:59.999Z");
+    expect(endOfDayIST(OCT_01_0000_IST).toISOString()).toBe("2026-10-01T18:29:59.999Z");
+  });
+
+  it("defaults to now", () => {
+    expect(endOfDayIST().getTime()).toBeGreaterThanOrEqual(todayIST().getTime());
+  });
+});
+
+describe("parseRelativeDateToken", () => {
+  it("resolves 'today' and 'yesterday' case-insensitively", () => {
+    expect(parseRelativeDateToken("today", SEP_30_2359_IST)!.toISOString()).toBe(
+      todayIST(SEP_30_2359_IST).toISOString(),
+    );
+    expect(parseRelativeDateToken("TODAY", SEP_30_2359_IST)!.toISOString()).toBe(
+      todayIST(SEP_30_2359_IST).toISOString(),
+    );
+    expect(parseRelativeDateToken("Yesterday", OCT_01_0000_IST)!.toISOString()).toBe(
+      "2026-09-29T18:30:00.000Z",
+    );
+  });
+
+  it("parses dd-mm with no year using the current IST year", () => {
+    expect(parseRelativeDateToken("01-10", SEP_30_2359_IST)!.toISOString()).toBe(
+      OCT_01_0000_IST.toISOString(),
+    );
+    expect(parseRelativeDateToken("30-09", SEP_30_2359_IST)!.toISOString()).toBe(
+      "2026-09-29T18:30:00.000Z",
+    );
+  });
+
+  it("accepts single-digit day/month", () => {
+    expect(parseRelativeDateToken("1-10", SEP_30_2359_IST)!.toISOString()).toBe(
+      OCT_01_0000_IST.toISOString(),
+    );
+  });
+
+  it("parses dd-mm-yyyy with an explicit year", () => {
+    expect(parseRelativeDateToken("05-01-2026")!.toISOString()).toBe("2026-01-04T18:30:00.000Z");
+  });
+
+  it("does not roll a future dd-mm date back to a prior year", () => {
+    // Parsed on 30 Sep 2026, "31-12" is still in the future this year — no rollback heuristic.
+    expect(parseRelativeDateToken("31-12", SEP_30_2359_IST)!.toISOString()).toBe(
+      "2026-12-30T18:30:00.000Z",
+    );
+  });
+
+  it("rejects an impossible calendar date", () => {
+    expect(parseRelativeDateToken("31-02", SEP_30_2359_IST)).toBeNull();
+  });
+
+  it("rejects out-of-range day or month", () => {
+    expect(parseRelativeDateToken("32-01")).toBeNull();
+    expect(parseRelativeDateToken("15-13")).toBeNull();
+    expect(parseRelativeDateToken("00-05")).toBeNull();
+  });
+
+  it("rejects anything that isn't today/yesterday/dd-mm[-yyyy]", () => {
+    expect(parseRelativeDateToken("swiggy")).toBeNull();
+    expect(parseRelativeDateToken("120")).toBeNull();
+    expect(parseRelativeDateToken("")).toBeNull();
+  });
+});
+
+describe("trailingWeekRangeIST", () => {
+  it("spans the 7 IST days ending on the given date, inclusive", () => {
+    const { start, end } = trailingWeekRangeIST(SEP_30_2359_IST);
+    expect(start.toISOString()).toBe("2026-09-23T18:30:00.000Z");
+    expect(end.toISOString()).toBe("2026-09-30T18:29:59.999Z");
+    // 7 IST calendar days inclusive: exactly 7*24h minus 1ms.
+    expect(end.getTime() - start.getTime()).toBe(7 * 24 * 60 * 60 * 1000 - 1);
+  });
+
+  it("defaults to now", () => {
+    const { start, end } = trailingWeekRangeIST();
+    expect(start.getTime()).toBeLessThan(end.getTime());
   });
 });
