@@ -48,7 +48,7 @@ export function daysLeftInMonth(now: Date = new Date()): number {
   return differenceInCalendarDays(endOfMonth(zoned), zoned) + 1;
 }
 
-/** "30 Sep" (short) or "Mon, 30 Sep 2026" (long), always rendered in IST. */
+/** "30 Sep" (short) or "Wed, 30 Sep 2026" (long), always rendered in IST. */
 export function formatDay(date: Date, style: "short" | "long" = "short"): string {
   return formatInTimeZone(date, IST, style === "long" ? "EEE, d MMM yyyy" : "d MMM");
 }

@@ -32,6 +32,7 @@ describe("parseServerEnv", () => {
     const env = parseServerEnv(valid);
     expect(env.ALLOWED_EMAILS).toEqual(["owner@example.com", "second@example.com"]);
     expect(env.AI_PROVIDER).toBe("anthropic");
+    expect(env.MONGODB_DB).toBe("kaasu");
     expect(env.NODE_ENV).toBe("development");
     expect(env.ANTHROPIC_API_KEY).toBeUndefined();
   });
@@ -69,6 +70,7 @@ describe("parseServerEnv", () => {
     ["ENCRYPTION_KEY", "%%%%"],
     ["ENCRYPTION_KEY", "abcde"],
     ["MONGODB_URI", "postgres://localhost"],
+    ["MONGODB_DB", "kaasu/prod db"],
     ["ALLOWED_EMAILS", "not-an-email"],
     ["ALLOWED_EMAILS", " , "],
     ["AI_PROVIDER", "cohere"],

@@ -30,6 +30,10 @@ export const serverEnvSchema = z.object({
   MONGODB_URI: z
     .string({ error: "is required" })
     .regex(/^mongodb(\+srv)?:\/\//, "must start with mongodb:// or mongodb+srv://"),
+  MONGODB_DB: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,38}$/, "must be a plain database name")
+    .default("kaasu"),
 
   // Auth.js
   AUTH_SECRET: z.string({ error: "is required" }).min(32, "must be at least 32 characters"),

@@ -1,2 +1,3 @@
 // App-wide composites (AmountInput, CategoryPicker, EmptyState…).
-export {};
+export { GitHubIcon } from "./github-icon";
+export { Logo } from "./logo";

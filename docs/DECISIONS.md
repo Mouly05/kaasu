@@ -39,3 +39,29 @@ Format: context → decision → consequences. Newest at the bottom. Never edit 
 - **Date:** 2026-09-30 · **Status:** Accepted
 - **Context:** Next 16 exposes typed route globals (`LayoutProps`, `PageProps`) generated into `.next/types`. They don't exist on a clean checkout (CI).
 - **Decision:** `pnpm typecheck` = `next typegen && tsc --noEmit`.
+
+## ADR-007: `proxy.ts` gate + split Auth.js config
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Next 16 renamed `middleware.ts` to `proxy.ts` (Node runtime only). The proxy should stay light and must not open DB connections.
+- **Decision:** `src/lib/auth/config.ts` has no DB access (GitHub provider, allowlist `signIn`, session mapping) and is used by `src/proxy.ts`. `src/lib/auth.ts` extends it with the `jwt` callback that upserts the User on sign-in and stores `userId` in the token. Access rules live in the pure `decideAccess()` (`src/lib/auth/access.ts`), which is unit-tested. Secrets are compared in constant time (sha256 + `timingSafeEqual`). The proxy is the first gate only: pages call `requirePageUser()`, and actions and route handlers call `requireUser()` or check their own secret.
+- **Consequences:** JWT sessions mean no sessions collection. Revoking access = remove the email from `ALLOWED_EMAILS` and rotate `AUTH_SECRET`. Existing JWTs stay valid until expiry (30 days) otherwise.
+
+## ADR-008: Static CSP with `'unsafe-inline'` scripts (no nonces)
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** A nonce CSP forces every page to be dynamically rendered and rules out static/PPR pages. Next's bootstrap scripts and next-themes' no-flash script are inline.
+- **Decision:** The CSP is built in `src/lib/security-headers.ts` and applied from `next.config.ts` `headers()`. `script-src 'self' 'unsafe-inline'` (+ `'unsafe-eval'` in dev only), `style-src 'self' 'unsafe-inline'`, `frame-ancestors 'none'`, `object-src 'none'`, `form-action 'self' https://github.com`, `img-src` allows GitHub avatars.
+- **Consequences:** XSS defence rests on React escaping plus Zod validation more than on the CSP. Revisit with nonces or experimental SRI once the app is stable. Add third-party origins here explicitly if one is ever needed.
+
+## ADR-009: Rate limiting = fixed window in Mongo, memory fallback
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Context:** Serverless instances don't share memory; no paid Redis on the free tier.
+- **Decision:** `createRateLimiter` counts per `name:userId` per window using an atomic `$inc` upsert in `ratelimitbuckets` (TTL index on `expiresAt`). If Mongo throws, it falls back to an in-process memory store (logged) instead of failing open completely.
+- **Consequences:** One small write per limited request. Fixed windows allow up to 2× the limit across a window boundary, which is acceptable for cost protection.
+
+## ADR-010: `MONGODB_DB` selects the database
+
+- **Date:** 2026-09-30 · **Status:** Accepted
+- **Decision:** Optional `MONGODB_DB` (default `kaasu`) is passed as Mongoose `dbName`, overriding any path in `MONGODB_URI`, so an Atlas URI copied without a database never writes to `test`.

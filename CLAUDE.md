@@ -55,6 +55,7 @@ src/
   components/ui/          # shadcn primitives
   components/shared/      # app-wide composites (AmountInput, CategoryPicker, EmptyState…)
   messages/  en.json  ta.json
+  proxy.ts                # Next 16 "proxy" (formerly middleware.ts): auth gate, see ADR-007
 ```
 Rules: pages call `features/*/queries.ts` (reads) and `actions.ts` (server actions, writes).
 Business logic lives in `service.ts` as pure functions where possible (easy to unit test).
@@ -64,7 +65,7 @@ Business logic lives in `service.ts` as pure functions where possible (easy to u
 - Server Actions return `{ ok: true, data } | { ok: false, error }` — never throw to the client.
 - Naming: `camelCase` vars, `PascalCase` components/models, `kebab-case` files, collections plural.
 - Every list screen has: loading skeleton, empty state with a clear call to action, error state.
-- Dates displayed like `30 Sep`, `Mon, 30 Sep 2026`. Amounts like `₹1,23,456`.
+- Dates displayed like `30 Sep`, `Wed, 30 Sep 2026`. Amounts like `₹1,23,456`.
 - Commits: Conventional Commits (`feat(expenses): quick add`). One module = one or more small commits.
 
 ## 6. Design language

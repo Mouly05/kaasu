@@ -6,7 +6,7 @@ Status: ⬜ not started · 🟡 in progress · ✅ done
 | --- | ----------------------------------------------------------------------- | ------ | -------------------- |
 | 0   | Setup & accounts (GitHub, Vercel, Atlas, OAuth app, env)                | ✅     | `.env.local` present |
 | 1   | Foundation (scaffold, tooling, shadcn, env, money, dates, CI)           | ✅     | 2026-09-30           |
-| 2   | DB connection + Auth (Mongoose, Auth.js GitHub, allowlist, crypto)      | ⬜     |                      |
+| 2   | DB connection + Auth (Mongoose, Auth.js GitHub, allowlist, crypto)      | ✅     | 2026-09-30           |
 | 3   | App shell & design system (sidebar, bottom nav, ⌘K, theme, i18n wiring) | ⬜     |                      |
 | 4   | Expenses (quick add, list, categories)                                  | ⬜     |                      |
 | 5   | Recurring / fixed expenses                                              | ⬜     |                      |
@@ -39,3 +39,23 @@ Notes:
 - shadcn `form` is not in the current registry; `field` + react-hook-form + @hookform/resolvers are used instead (ADR-005).
 - 139 unit tests; `money.ts` and `dates.ts` at 100% coverage (enforced for money.ts). Dates tests also pass under `TZ=America/New_York`.
 - Playwright is configured, but the browsers are not installed yet (`pnpm exec playwright install` when E2E starts in Module 16).
+
+## Module 2 — Auth & Security
+
+- [x] Auth.js v5 (`next-auth@beta`) with GitHub, JWT sessions, `ALLOWED_EMAILS` allowlist (case-insensitive) in the `signIn` callback
+- [x] User upserted on sign-in (`jwt` callback); minimal `User` model (email, name, image, locale, currency, timezone, timestamps)
+- [x] Cached Mongoose connection (`src/lib/db/connection.ts`), `MONGODB_DB` (default `kaasu`)
+- [x] `src/proxy.ts` (Next 16 replacement for `middleware.ts`): pages → `/login?callbackUrl=…`, `/api/*` → 401 JSON, `/api/auth/*` public, `/api/cron/*` Bearer `CRON_SECRET`, `/api/telegram/webhook` secret header (404 when the bot is not configured)
+- [x] `/login` (GitHub button, error alerts) and `/login/denied` (friendly page for emails not on the allowlist)
+- [x] `src/lib/crypto.ts`: AES-256-GCM, `v1:iv:tag:data`, `DecryptionError` on tampering; 100% coverage
+- [x] `src/lib/auth-helpers.ts`: `requireUser`, `requirePageUser`, `UnauthorizedError`, `withAction` / `withRoute` wrappers (401 / 429 + Retry-After / 500 with details hidden)
+- [x] `src/lib/rate-limit`: per-user fixed window, Mongo store (TTL buckets) with in-memory fallback; presets `ai` (20/min) and `upload` (5/min)
+- [x] Security headers from `next.config.ts` (CSP, XFO DENY, nosniff, Referrer-Policy, Permissions-Policy, COOP, HSTS in prod)
+- [x] `/settings` skeleton: Profile (+ sign out), Preferences (language saved via server action; theme placeholder), Connections, Data
+
+Notes:
+
+- 230 unit tests. 100% coverage enforced for `crypto.ts`, `auth/allowlist.ts`, `auth/access.ts`.
+- Smoke-tested against `pnpm build && pnpm start`: redirects, 401/404 JSON, cron bearer, headers. Atlas ping OK.
+- Not yet verified end to end: the real GitHub OAuth round-trip in a browser (needs a manual sign-in). Playwright covers it in Module 16.
+- `/` is now a protected placeholder home under `(app)`. Module 3 replaces the minimal header with the real shell.
