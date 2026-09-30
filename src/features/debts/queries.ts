@@ -85,15 +85,22 @@ export interface EmiSummary {
   interestRatePct: number;
   startDate: Date;
   lender: string | null;
+  recurringId: string | null;
   installments: EmiInstallment[];
 }
 
-/** The signed-in user's EMIs. */
-export async function listEmis(userId: string): Promise<EmiSummary[]> {
-  if (!isValidObjectId(userId)) return [];
-  await connectDb();
-  const emis = await Emi.find({ userId }).sort({ startDate: -1 }).lean();
-  return emis.map((e) => ({
+function toEmiSummary(e: {
+  _id: unknown;
+  title: string;
+  principalPaise: number;
+  tenureMonths: number;
+  interestRatePct: number;
+  startDate: Date;
+  lender?: string;
+  recurringId?: unknown;
+  installments: EmiInstallment[];
+}): EmiSummary {
+  return {
     id: String(e._id),
     title: e.title,
     principalPaise: e.principalPaise,
@@ -101,6 +108,23 @@ export async function listEmis(userId: string): Promise<EmiSummary[]> {
     interestRatePct: e.interestRatePct,
     startDate: e.startDate,
     lender: e.lender ?? null,
+    recurringId: e.recurringId ? String(e.recurringId) : null,
     installments: e.installments,
-  }));
+  };
+}
+
+/** The signed-in user's EMIs. */
+export async function listEmis(userId: string): Promise<EmiSummary[]> {
+  if (!isValidObjectId(userId)) return [];
+  await connectDb();
+  const emis = await Emi.find({ userId }).sort({ startDate: -1 }).lean();
+  return emis.map(toEmiSummary);
+}
+
+/** A single EMI by id, scoped to the signed-in user. */
+export async function getEmiById(userId: string, emiId: string): Promise<EmiSummary | null> {
+  if (!isValidObjectId(userId) || !isValidObjectId(emiId)) return null;
+  await connectDb();
+  const emi = await Emi.findOne({ _id: emiId, userId }).lean();
+  return emi ? toEmiSummary(emi) : null;
 }

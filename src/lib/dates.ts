@@ -4,6 +4,7 @@
  * optional `now` so they can be tested deterministically.
  */
 import {
+  addDays,
   addMonths,
   differenceInCalendarDays,
   endOfDay,
@@ -61,6 +62,11 @@ export function daysLeftInMonth(now: Date = new Date()): number {
   return differenceInCalendarDays(endOfMonth(zoned), zoned) + 1;
 }
 
+/** Calendar days from `now`'s IST day to `date`'s IST day (negative if `date` is in the past). */
+export function daysUntilIST(date: Date, now: Date = new Date()): number {
+  return differenceInCalendarDays(toZonedTime(date, IST), toZonedTime(now, IST));
+}
+
 /** "30 Sep" (short) or "Wed, 30 Sep 2026" (long), always rendered in IST. */
 export function formatDay(date: Date, style: "short" | "long" = "short"): string {
   return formatInTimeZone(date, IST, style === "long" ? "EEE, d MMM yyyy" : "d MMM");
@@ -74,6 +80,33 @@ export function shiftMonthKey(key: MonthKey, delta: number): MonthKey {
 /** "Oct 2026", for a MonthSwitcher label. */
 export function formatMonthLabel(key: MonthKey): string {
   return formatInTimeZone(parseMonthKey(key), IST, "MMM yyyy");
+}
+
+/** `day` in `year`/`month` (0-indexed), clamped to that month's last day
+ * (e.g. day 31 in a 30-day month → the 30th). Returns the UTC instant of
+ * 00:00 IST on that day. */
+function clampedDateIST(year: number, month: number, day: number): Date {
+  const lastDay = endOfMonth(new Date(year, month, 1)).getDate();
+  const zonedTarget = new Date(year, month, Math.min(Math.max(day, 1), lastDay));
+  return fromZonedTime(zonedTarget, IST);
+}
+
+/** The `dayOfMonth` occurrence in the IST month `monthOffset` months from `baseDate`'s month. */
+export function nthMonthlyOccurrenceIST(baseDate: Date, dayOfMonth: number, monthOffset: number): Date {
+  const zonedMonth = addMonths(startOfMonth(toZonedTime(baseDate, IST)), monthOffset);
+  return clampedDateIST(zonedMonth.getFullYear(), zonedMonth.getMonth(), dayOfMonth);
+}
+
+/** The next occurrence of `anniversary`'s IST month/day on or after `now`'s IST day
+ * (this year, or next if it's already passed). A 29 Feb anniversary clamps to 28 Feb
+ * in a non-leap year. */
+export function nextAnniversaryIST(anniversary: Date, now: Date = new Date()): Date {
+  const zonedAnniversary = toZonedTime(anniversary, IST);
+  const zonedNow = toZonedTime(now, IST);
+  const month = zonedAnniversary.getMonth();
+  const day = zonedAnniversary.getDate();
+  const thisYear = clampedDateIST(zonedNow.getFullYear(), month, day);
+  return thisYear >= todayIST(now) ? thisYear : clampedDateIST(zonedNow.getFullYear() + 1, month, day);
 }
 
 /** "today"/"yesterday" (case-insensitive) or a `dd-mm`/`dd-mm-yyyy` token. A missing
@@ -103,6 +136,15 @@ export function parseRelativeDateToken(token: string, now: Date = new Date()): D
     return null;
   }
   return candidate;
+}
+
+/** The next date that is `anchor` plus a whole multiple of `intervalDays`, on or
+ * after `now`'s IST day (handles an `anchor` in the future too). */
+export function nextIntervalOccurrenceIST(anchor: Date, intervalDays: number, now: Date = new Date()): Date {
+  const elapsedDays = daysUntilIST(now, anchor);
+  const remainder = ((elapsedDays % intervalDays) + intervalDays) % intervalDays;
+  const daysToAdd = remainder === 0 ? 0 : intervalDays - remainder;
+  return todayIST(addDays(now, daysToAdd));
 }
 
 /** A rolling trailing-7-day window ending on `date`'s IST day (inclusive), not a

@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   daysLeftInMonth,
+  daysUntilIST,
   endOfDayIST,
   endOfMonthIST,
   formatDay,
   formatMonthLabel,
   monthKey,
+  nextAnniversaryIST,
+  nextIntervalOccurrenceIST,
+  nthMonthlyOccurrenceIST,
   parseMonthKey,
   parseRelativeDateToken,
   shiftMonthKey,
@@ -202,6 +206,97 @@ describe("parseRelativeDateToken", () => {
     expect(parseRelativeDateToken("swiggy")).toBeNull();
     expect(parseRelativeDateToken("120")).toBeNull();
     expect(parseRelativeDateToken("")).toBeNull();
+  });
+});
+
+describe("daysUntilIST", () => {
+  it("counts IST calendar days, not elapsed hours", () => {
+    expect(daysUntilIST(OCT_01_0000_IST, SEP_30_2359_IST)).toBe(1);
+    expect(daysUntilIST(SEP_30_2359_IST, SEP_30_2359_IST)).toBe(0);
+    expect(daysUntilIST(SEP_30_2359_IST, OCT_01_0000_IST)).toBe(-1);
+  });
+
+  it("defaults now to the current instant", () => {
+    expect(daysUntilIST(todayIST())).toBe(0);
+  });
+});
+
+describe("nthMonthlyOccurrenceIST", () => {
+  it("lands on dayOfMonth in the base month when monthOffset is 0", () => {
+    expect(nthMonthlyOccurrenceIST(OCT_01_0000_IST, 15, 0).toISOString()).toBe(
+      "2026-10-14T18:30:00.000Z",
+    );
+  });
+
+  it("moves forward and backward by monthOffset", () => {
+    expect(nthMonthlyOccurrenceIST(OCT_01_0000_IST, 15, 1).toISOString()).toBe(
+      "2026-11-14T18:30:00.000Z",
+    );
+    expect(nthMonthlyOccurrenceIST(OCT_01_0000_IST, 15, -1).toISOString()).toBe(
+      "2026-09-14T18:30:00.000Z",
+    );
+  });
+
+  it("clamps to the last day of a shorter month", () => {
+    const jan1_2026 = utc("2025-12-31T18:30:00.000Z"); // 00:00 IST, 1 Jan 2026
+    expect(nthMonthlyOccurrenceIST(jan1_2026, 31, 1).toISOString()).toBe(
+      "2026-02-27T18:30:00.000Z", // 28 Feb 2026 (non-leap)
+    );
+    const jan1_2028 = utc("2027-12-31T18:30:00.000Z"); // 00:00 IST, 1 Jan 2028
+    expect(nthMonthlyOccurrenceIST(jan1_2028, 31, 1).toISOString()).toBe(
+      "2028-02-28T18:30:00.000Z", // 29 Feb 2028 (leap)
+    );
+  });
+});
+
+describe("nextAnniversaryIST", () => {
+  const OCT_15_2020 = utc("2020-10-14T18:30:00.000Z"); // 00:00 IST, 15 Oct 2020
+  const FEB_29_2020 = utc("2020-02-28T18:30:00.000Z"); // 00:00 IST, 29 Feb 2020 (leap day)
+
+  it("returns this year's occurrence when it hasn't passed yet", () => {
+    expect(nextAnniversaryIST(OCT_15_2020, OCT_01_0000_IST).toISOString()).toBe(
+      "2026-10-14T18:30:00.000Z", // 15 Oct 2026
+    );
+  });
+
+  it("rolls to next year once this year's occurrence has passed", () => {
+    expect(nextAnniversaryIST(OCT_15_2020, utc("2026-10-20T00:00:00Z")).toISOString()).toBe(
+      "2027-10-14T18:30:00.000Z", // 15 Oct 2027
+    );
+  });
+
+  it("clamps a 29 Feb anniversary to 28 Feb in a non-leap year", () => {
+    expect(nextAnniversaryIST(FEB_29_2020, utc("2026-01-01T00:00:00Z")).toISOString()).toBe(
+      "2026-02-27T18:30:00.000Z", // 28 Feb 2026
+    );
+  });
+
+  it("defaults to now", () => {
+    expect(nextAnniversaryIST(OCT_15_2020).getTime()).toBeGreaterThan(0);
+  });
+});
+
+describe("nextIntervalOccurrenceIST", () => {
+  it("returns now's day when it's exactly on the cycle", () => {
+    expect(nextIntervalOccurrenceIST(OCT_01_0000_IST, 7, OCT_01_0000_IST).toISOString()).toBe(
+      OCT_01_0000_IST.toISOString(),
+    );
+    expect(nextIntervalOccurrenceIST(OCT_01_0000_IST, 7, utc("2026-10-08T10:00:00Z")).toISOString()).toBe(
+      "2026-10-07T18:30:00.000Z", // 8 Oct 2026
+    );
+  });
+
+  it("rolls forward to the next occurrence mid-cycle", () => {
+    expect(nextIntervalOccurrenceIST(OCT_01_0000_IST, 7, utc("2026-10-04T10:00:00Z")).toISOString()).toBe(
+      "2026-10-07T18:30:00.000Z", // 8 Oct 2026, 4 days into the 7-day cycle
+    );
+  });
+
+  it("handles an anchor date that is in the future relative to now", () => {
+    const anchorOct17 = utc("2026-10-16T18:30:00.000Z"); // 00:00 IST, 17 Oct 2026
+    expect(nextIntervalOccurrenceIST(anchorOct17, 7, OCT_01_0000_IST).toISOString()).toBe(
+      "2026-10-02T18:30:00.000Z", // 3 Oct 2026 — still on the 17th's 7-day cycle
+    );
   });
 });
 

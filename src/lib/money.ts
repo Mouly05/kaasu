@@ -40,7 +40,7 @@ function assertPaise(value: number, label = "amount"): void {
 }
 
 /** Rounds half away from zero, then checks the result is a safe integer. */
-function roundToPaise(value: number): Paise {
+export function roundToPaise(value: number): Paise {
   const rounded = Math.sign(value) * Math.round(Math.abs(value)) || 0;
   assertPaise(rounded, "result");
   return rounded;

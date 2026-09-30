@@ -173,6 +173,93 @@
       "updated": "Expense updated"
     }
   },
+  "recurring": {
+    "title": "Recurring & EMIs",
+    "description": "Fixed costs, subscriptions and EMIs, all in one place.",
+    "monthlyTotal": "Monthly total",
+    "yearlySubscriptions": "Subscriptions",
+    "yearlySubscriptionsHint": "{monthly}/mo = {yearly}/yr",
+    "emptyKind": "Nothing here yet",
+    "kinds": {
+      "rent": "Rent",
+      "support": "Family support",
+      "sip": "SIP",
+      "subscription": "Subscriptions",
+      "emi": "EMIs",
+      "fixed": "Other fixed"
+    },
+    "card": {
+      "dueToday": "Due today",
+      "dueInDays": "Due in {days, plural, one {1 day} other {# days}}",
+      "overdueByDays": "{days, plural, one {1 day} other {# days}} overdue",
+      "noDueDate": "Custom schedule",
+      "paid": "Paid",
+      "fullyPaid": "Fully paid",
+      "markPaid": "Mark as paid",
+      "autoLog": "Auto-log"
+    },
+    "upcoming": {
+      "title": "Next 7 days",
+      "empty": "Nothing due in the next 7 days.",
+      "dueToday": "Today",
+      "dueInDays": "in {days, plural, one {1 day} other {# days}}"
+    },
+    "emiLoadMeter": {
+      "title": "EMI load",
+      "hint": "of expected monthly income",
+      "noIncomeHint": "Set your salary in Settings to see your EMI load.",
+      "warning": "Getting high — keep an eye on new EMIs.",
+      "hard": "Over 20% of income — consider paying one off before adding more."
+    },
+    "addDialog": {
+      "trigger": "Add fixed item",
+      "dialogTitle": "Add a recurring item",
+      "dialogDescription": "Rent, family support, SIPs and subscriptions.",
+      "title": "Title",
+      "amount": "Amount",
+      "kind": "Kind",
+      "frequency": "Frequency",
+      "frequencies": {
+        "monthly": "Monthly",
+        "weekly": "Weekly",
+        "yearly": "Yearly",
+        "custom": "Custom"
+      },
+      "dayOfMonth": "Day of month",
+      "startDate": "Start date",
+      "category": "Category",
+      "account": "Account",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saved": "Recurring item added"
+    },
+    "calculator": {
+      "trigger": "Add EMI",
+      "title": "EMI calculator",
+      "description": "Reducing-balance EMI, with fees and a no-cost check.",
+      "itemTitle": "Title",
+      "price": "Price",
+      "downPayment": "Down payment",
+      "tenure": "Tenure (months)",
+      "interestRate": "Interest rate % (0 = no-cost)",
+      "processingFee": "Processing fee",
+      "gst": "GST on fee %",
+      "paymentMethodNote": "No-cost EMI is usually only available on credit cards — confirm your payment method before choosing this.",
+      "noCostWarning": "This \"no-cost\" EMI still costs {amount} in fees.",
+      "monthlyEmi": "Monthly EMI",
+      "totalPaid": "Total paid",
+      "extraCost": "Extra cost vs cash",
+      "effectiveCost": "Effective annual cost",
+      "dayOfMonth": "Day of month",
+      "startDate": "Start date",
+      "lender": "Lender (optional)",
+      "category": "Category",
+      "account": "Account",
+      "cancel": "Cancel",
+      "create": "Create EMI",
+      "created": "EMI created"
+    }
+  },
   "styleguide": {
     "title": "Style guide",
     "description": "Every shared component, in both themes and both languages.",
