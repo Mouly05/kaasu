@@ -1,0 +1,26 @@
+.env*
+!.env.example
+node_modules
+.next
+.DS_Store
+
+# --- merged from create-next-app template ---
+/.pnp
+.pnp.*
+/coverage
+/out/
+/build
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
